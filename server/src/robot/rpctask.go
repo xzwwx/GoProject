@@ -2,6 +2,7 @@ package main
 import (
 	glog "glog-master"
 	"gonet"
+	"io"
 	"net"
 	"runtime/debug"
 	"sync"
@@ -11,10 +12,11 @@ import (
 
 const(
 	cmd_verify_time = 30
+	cmd_header_size = 4	// 3 bytes length of instruction + 1 byte flag
 )
 type RpcTask struct{
 	closed 		int32
-	virified	bool
+	verified	bool
 	stopedChan	chan struct{}
 	recvBuff	*gonet.ByteBuffer
 	sendBuff	*gonet.ByteBuffer
@@ -106,12 +108,72 @@ func (this * RpcTask) SendBytes(buffer []byte) bool{
 	return true
 }
 
+func (this *RpcTask) readAtLeast(buff *gonet.ByteBuffer, neednum int) error {
+	buff.WrGrow(neednum)
+	n, err := io.ReadAtLeast(this.Conn, buff.WrBuf(), neednum)
+	buff.WrFlip(n)
+	return err
+}
+
+func (this *RpcTask) Reset() bool {
+	if atomic.LoadInt32(&this.closed) != 1 {
+		return false
+	}
+	if !this.IsVerified(){
+		return false
+	}
+	this.closed = -1
+	this.verified = false
+	this.stopedChan = make(chan struct{})
+	glog.Info("[Connection] Reset connection.")
+	return true
+}
+
 func (this *RpcTask)IsClosed() bool{
 	return atomic.LoadInt32(&this.closed)!=0
 }
 
 func (this *RpcTask)Terminate(){
 	this.Close()
+}
+
+func (this *RpcTask)Verify(){
+	this.verified = true
+}
+
+func (this *RpcTask) IsVerified() bool{
+	return this.verified
+}
+
+func (this *RpcTask) recvloop() {
+	defer func(){
+		this.Close()
+		if err := recover(); err != nil {
+			glog.Error("[Exception] ", err, "\n", string(debug.Stack()))
+		}
+	}()
+
+	var(
+		neednum 	int
+		err			error
+		totalsize	int
+		datasize 	int
+		msgbuff		[]byte
+	)
+	for {
+		totalsize = this.recvBuff.RdSize()
+		if totalsize <= cmd_header_size {
+			neednum = cmd_header_size - totalsize
+			err = this.readAtLeast(this.recvBuff, neednum)
+			if err != nil {
+				glog.Error("[Connection] Receive failed.")
+				return
+			}
+			totalsize = this.recvBuff.RdSize()
+		}
+	}
+
+
 }
 
 func (this *RpcTask) sendloop(job *sync.WaitGroup){
@@ -133,16 +195,33 @@ func (this *RpcTask) sendloop(job *sync.WaitGroup){
 
 	for {
 		select {
-		case <- this.signal:
+		case <-this.signal:
 			for {
 				this.sendMutex.Lock()
-				if this.sendBuff.RdReady(){
+				if this.sendBuff.RdReady() {
 					tmpByte.Append(this.sendBuff.RdBuf()[:this.sendBuff.RdSize()]...)
 					this.sendBuff.Reset()
 				}
 				this.sendMutex.Unlock()
+
+				if !tmpByte.RdReady() {
+					break
+				}
+
+				writenum, err = this.Conn.Write(tmpByte.RdBuf()[:tmpByte.RdSize()])
+				if err != nil {
+					glog.Error("[Connetion] Send failed.", this.RemoteAddr(), ", ", err)
+					return
+				}
+				tmpByte.RdFlip(writenum)
 			}
-			if !tmpByte
+		case <-this.stopedChan:
+			return
+		case <-timeout.C:
+			if !this.isVerified() {
+				glog.Error("[Connection] Verified Timeout.", this.RemoteAddr())
+				return
+			}
 		}
 	}
 }
