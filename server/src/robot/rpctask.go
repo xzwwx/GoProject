@@ -11,9 +11,19 @@ import (
 )
 
 const(
+	cmd_max_size = 128 * 1024
 	cmd_verify_time = 30
 	cmd_header_size = 4	// 3 bytes length of instruction + 1 byte flag
 )
+
+
+type IRpcTask interface{
+	ParseMsg(data []byte) bool
+	OnClose()
+}
+
+
+
 type RpcTask struct{
 	closed 		int32
 	verified	bool
@@ -85,10 +95,11 @@ func (this *RpcTask)Close() {
 	close(this.stopedChan)
 	this.Drived.Onclose()
 }
+
 func NewRpcTask(conn net.Conn) *RpcTask{
 	return &RpcTask{
 		closed: 	-1,
-		virified:	 false,
+		verified:	 false,
 		Conn: 		conn,
 		stopedChan: make(chan struct{}, 1),
 		recvBuff: 	gonet.NewByteBuffer(),
@@ -171,6 +182,30 @@ func (this *RpcTask) recvloop() {
 			}
 			totalsize = this.recvBuff.RdSize()
 		}
+
+		msgbuff = this.recvBuff.RdBuf()
+		datasize = int(msgbuff[0]) << 16 | int(msgbuff[1]) << 8 | int(msgbuff[2])
+		if datasize > cmd_max_size{
+			glog.Error("[Connection] Data oversize.", this.RemoteAddr(), ",", datasize)
+			return
+		} else if datasize < cmd_header_size {
+			glog.Error("[Connection] Data too few.")
+			return
+		}
+
+		if totalsize < datasize {
+			neednum = datasize - totalsize
+			err = this.readAtLeast(this.recvBuff, neednum)
+			if err != nil {
+				glog.Error("[Connection] Receive failed.", this.RemoteAddr(), ",", datasize)
+				return
+			}
+
+			msgbuff = this.recvBuff.RdBuf()
+		}
+		this.Drived.ParseMsg(msgbuff[:datasize])
+		this.recvBuff.RdFlip(datasize)
+
 	}
 
 
@@ -218,7 +253,7 @@ func (this *RpcTask) sendloop(job *sync.WaitGroup){
 		case <-this.stopedChan:
 			return
 		case <-timeout.C:
-			if !this.isVerified() {
+			if !this.IsVerified() {
 				glog.Error("[Connection] Verified Timeout.", this.RemoteAddr())
 				return
 			}

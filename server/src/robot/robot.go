@@ -55,6 +55,19 @@ func NewLogicClient(addr, key string, id uint64, name string) *LogicClient{
 	return sclient
 }
 
+func (this *LogicClient) Connect() bool {
+	conn, err := this.mclient.Connect(this.addr)
+	if err != nil {
+		glog.Error("[Logic] Connect failed.", this.addr)
+	}
+}
+
+
+
+
+
+
+
 func (this * LogicClient)SendCmd(mainCmd uint8, subCmd uint16, SeqId uint32, Buff []byte) bool {
 
 	// simplified
@@ -123,4 +136,6 @@ func (this *LogicClient) SendRpcCmd(uri string)bool{
 	this.tmpseqid ++
 	return this.SendCmd(mainCmd, subCmd, this.tmpseqid, data)
 }
+
+
 
