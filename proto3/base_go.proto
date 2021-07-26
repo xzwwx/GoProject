@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package usercmd;
+
+option go_package = "./;usercmd";
+
+//http request data
+message ReqHttpArgData{
+  message KeyVal{
+    string Key = 1;
+    string Val = 2;
+  }
+  repeated KeyVal Args = 1; //
+  uint32 Cmd = 2;
+}
