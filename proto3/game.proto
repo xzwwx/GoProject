@@ -1,0 +1,383 @@
+syntax = "proto3";
+package usercmd;
+import "base_go.proto";
+
+option go_package = "./;usercmd";
+
+enum MsgTypeCmd {
+  None          = 0;
+  Login         = 1;
+  AddPlayer     = 3;
+  RemovePlayer  = 4;
+  Scene         = 5;
+  Move          = 6;
+  LayBomb       = 7;  // = Break
+  Death         = 10;
+  EndRoom       = 11;
+  NewScene      = 13;
+  ReSetNet      = 15;
+  HeartBeat     = 16;
+  BeBomb        = 21; // = BeBreak
+  SystemMsg     = 22;
+
+  ErrorMsg      = 23;
+
+  SceneSync     = 100;
+  InitSyncData  = 101;
+  AddPlayers    = 102;
+  AddBalls      = 104;
+  RemoveBalls   = 105;
+  SetSceneData  = 106;
+  CheckSyncData = 108;
+  SetPlayerAttrs= 109;
+
+  UserStateSet  = 111;
+  UserStateClr  = 112;
+
+}
+
+message RetNewObjInfo{
+  uint32 ObjId = 1;
+}
+
+message HeartBeatInfo{
+  string Verification = 1;
+}
+
+
+///////////////////// Room instruction///////////////////////
+//Login request
+message MsgLogin {
+  string name = 1;
+  string key = 2;
+  uint32 nameSkin = 3;
+  bool IsUdp = 4;
+  uint32 BgMusic = 5;
+  uint32 Ver = 6;
+}
+
+//Return unix error code
+message RetErrorMsgCmd{
+  uint32 RetCode = 1;
+  uint32 Params = 2;
+  string JsonPatam = 3;
+}
+
+//Return Login
+message MsgLoginResult {
+  bool ok             = 1;
+  uint64 id           = 2;
+  string name         = 3;
+  repeated MsgPlayer others = 4;
+  repeated MsgBall balls = 5;
+  uint32 time         = 6;
+  uint32 frame        = 7;
+  uint32 Local        = 8;
+  uint32 TeamName     = 9;
+  uint32 TeamId       = 10;
+  uint32 SceneUId     = 14; //(0-255)
+  string RoomName     = 16;
+  bool IsUdp          = 19;
+  uint32 RoomType     = 27;
+  uint32 BattleId     = 28;
+  string LocationName = 29;
+  uint32 RoomId       = 30;
+  repeated uint64 MemIds = 31; // teammates ID list
+  uint32 MapWidth     = 34;
+  uint32 MapId        = 35;
+  uint32 LastTime     = 36;
+  uint32 MapHeight    = 38;
+
+  bool NewSync        = 42;
+
+  float GCellSize     = 50; //gezichicun
+  uint32 GCellUnitSize= 51;
+  GMapData GMap       = 52;   //////////Map
+
+}
+
+
+// Bomb Ball
+message MsgBall{
+  uint32 id           = 1;
+  int32 type          = 2;
+  uint64 own          = 3;
+  uint32 score        = 4;  // power
+  int32 x             = 6;
+  int32 y             = 7;
+  int32 nx            = 8;  //next x
+  int32 ny            = 9;
+  uint32 PreId        = 10;
+  uint32 DecayTime    = 12; //bomb time
+
+}
+
+
+// (Ball) Move message
+message BallMove{
+  uint32 id     = 1;
+  int32 x       = 2;
+  int32 y       = 3;
+  int32 nx      = 4;
+  int32 ny      = 5;
+}
+
+// Player data
+message MsgPlayer{
+  uint64 id         = 1;
+  string name       = 2;
+  uint32 local      = 3;
+  uint32 TeamName   = 4;
+  uint32 TeamId     = 5;
+  uint32 LifeNum    = 7; //  = Max Bomb Number
+  repeated uint32 Objects = 8;  // daoju
+  uint32 power      = 15;
+  uint32 speed      = 16;
+  uint32 state      = 17;
+}
+
+// Add player
+message MsgAddPlayer{
+  MsgPlayer player = 1;
+}
+
+// Delete player
+message MsgRemovePlayer{
+  uint64 id = 1;
+}
+
+// Move request
+message MsgMove{
+  int32 way = 1;    // direction
+  int32 speed = 2;  // = power
+}
+
+// UDP Login
+message MsgUdpLogin {
+  uint64 id = 1;
+}
+
+// UDP move request
+message MsgUdpMove {
+  uint64 id = 1;
+  uint32 power = 2; // direction and speed  : direction <<7 | speed
+}
+
+// UDP move
+message UdpBallMove {
+  uint32 id   = 1;
+  fixed64 pos = 2;  // : x<<48 | y << 32 | nx <<16 | ny
+}
+
+// UDP move msg
+message MsgSceneUdpMove {
+  repeated UdpBallMove balls = 1;
+}
+
+// Lay Bomb request
+message MsgBreak {
+  uint32 BeBreak = 1; // Lay Bomb
+  uint32 BreakCount = 2;  // Bomb number rested
+}
+
+/////////
+message RetBeBreak {
+  uint32 type = 1;
+}
+
+message MsgReSetNet {
+  string Net = 1;  //Addr
+}
+
+// Death Message
+message MsgDeath {
+  uint32 maxScore   = 1;
+  uint32 top        = 2;
+  uint32 killNum    = 3;
+  string killName   = 4;
+  uint32 liveTime   = 5;
+  uint64 KillId     = 6;
+}
+
+message EndPlayer {
+  uint64 id         = 1;
+  string Name       = 3;
+  uint64 Score      = 4;
+  uint32 KillNum    = 5;
+  repeated uint32 UObjIds = 21;
+}
+
+// Return room
+message MsgEndRoom {
+  repeated EndPlayer players  = 1;
+  EndPlayer UserSelf          = 2;
+  uint32 Scores               = 7;
+  uint32 RoomId               = 23;
+  uint32 IsWin                = 34;
+}
+
+// Client Heart Beat package
+message ClientHeartBeat {
+  string Seq = 1;
+  string Args = 2;
+}
+
+// Teammate position
+message RetTeamMemPos{
+  message MemPos{
+    uint64 Id = 1;
+    int32 X = 2;
+    int32 Y = 3;
+  }
+  repeated MemPos Mems = 1;
+}
+
+// Inform be joined
+message RetBejoined{
+  uint64 Id = 1;
+  string Account = 2;
+}
+//////////////end room instruction////////////////
+
+////////////////Sync instruction/////////////////
+//Request sync
+message ReqSceneSync {
+  bytes Opts = 1;
+}
+
+//Return sync
+message RetSceneSync{
+  message MsgFrame{
+    uint32 Frame = 1;
+    bytes Opts = 2;   // Player operation
+    bytes Cmds = 3;
+  }
+  repeated MsgFrame Frames = 1;
+  uint32 OptSeq = 2;
+}
+
+message BallData {
+  uint32 Id       = 1;
+  int64 Power     = 2;
+  int64 X         = 3;
+  int64 Y         = 4;
+  uint32 LayTime  = 11;
+
+}
+
+message SyncPlayer {
+  uint64 Id       = 1;
+  uint32 SId      = 2; // ?
+  uint32 TeamId   = 4;
+  uint32 TeamName = 5;
+  int64 Power     = 6;
+  int64 X         = 7;
+  int64 Y         = 8;
+  repeated BallData Balls = 9;
+  uint32 State    = 10;   // State:0=alive;1=jelly;2=death
+  uint32 StState  = 11;   // State time left
+  int64 Combine   = 12;   // Rescue or Kill
+  uint32 Speed    = 14;
+  uint32 LifeNum  = 15;
+}
+
+// Init data
+message RetInitSyncData {
+  message Square {
+    int64 X = 1;
+    int64 Y = 2;
+  }
+  message Barrier{
+    uint32 Type = 1;  // 1: bomb able; 0:wall
+    int64 BX = 2;
+    int64 BY = 3;
+  }
+  bool IsInit     = 1;
+  uint32 Frame    = 2;
+  uint32 RoomType = 3;
+  repeated SyncPlayer Players = 12;
+
+}
+
+
+// Add player in midway
+message RetAddPlayers {
+  uint64 Id   = 1;
+  uint32 Sid  = 2; //Scene id
+  uint32 TeamId   = 4;
+  uint32 TeamName = 5;
+  uint32 X        = 6;
+  uint32 Y        = 7;
+  uint32 LifeNum  = 8;
+  uint32 Speed    = 9;
+  uint32 Power    = 10;
+  uint32 State   = 11;
+}
+
+
+// Check Sync
+message ReqCheckSyncData{
+
+}
+
+message RetCheckSyncData{
+  uint32 Frame = 1;
+  string Sign  = 2;
+}
+
+// Set Player Attr
+message RetSetPlayerAttr{
+  message PlayerAttr{
+    uint64 PlayerId   = 1;
+    uint32 State      = 2;
+    uint32 Power      = 3;
+    uint32 Speed      = 4;
+    uint32 LifeNum    = 5;
+  }
+  repeated PlayerAttr Players = 1;
+}
+///////////////////Sync instruction over////////////////////
+
+
+
+//////////////// Common///////////////////////
+message GamePlayer{
+  uint64 Id       = 1;
+  string Account  = 2;
+  string Name     = 3;
+}
+
+message GCell {
+  uint32 TName    = 1;
+  uint32 X = 2;   //Index = X + Y * MapWidth
+  uint32 Y = 3;
+}
+
+message GCellUnit {
+  uint32 TName = 1;
+  uint32 Index = 2;
+  uint32 Num = 3;
+}
+
+message GMapData {
+  repeated GCell GCells = 1;
+  repeated GCellUnit GCellUnits = 2;
+}
+
+message RetGUpdateMap {
+  repeated GCell GCells  = 1; // tu ya
+}
+
+enum UserState {
+  Alive = 0;
+  Jelly = 1;
+  Dead = 2;
+}
+
+message RetUserStateSet{
+  uint64 UserId = 1;
+  uint32 State = 2;
+}
+
+
+

@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package usercmd;
+
+import "base.proto";
+
+option go_package = "./;usercmd";
+
+enum MsgType {
+  Login         = 1;
+  ReqIntoFRoom  = 5;
+
+}

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 	"usercmd"
 )
 
@@ -31,7 +32,7 @@ type LogicClient struct {
 
 	loginInfo 	LoginInfo
 	//teamcli		*TeamClient
-	//roomcli		*RoomClient
+	roomcli		*RoomClient
 
 }
 
@@ -59,6 +60,59 @@ func (this *LogicClient) Connect() bool {
 	conn, err := this.mclient.Connect(this.addr)
 	if err != nil {
 		glog.Error("[Logic] Connect failed.", this.addr)
+		return false
+	}
+	this.Conn = conn
+	this.Start()
+	this.Verify()
+
+
+	//////////////////// Connect Server could be modified
+	reqCmd := &usercmd.ReqGateLogin{
+		Key: 	this.key,
+		Version:"1.0",
+		StrArgs:this.privKey.N.Text(16),
+		IntArgs:uint32(this.privKey.E),
+	}
+
+	reqData := make([]byte, reqCmd.Size())
+	_, err = reqCmd.MarshalTo(reqData)
+	if err != nil {
+		glog.Error("[Protocal] Encode failed.")
+		return false
+	}
+	//////////////////////////
+	this.tmpseqid++
+	this.SendCmd(common.MsgType_LogicGate, uint16(usercmd.GateCmd_GateLogin), this.tmpseqid, reqData)
+
+	glog.Infof("[Logic] Connect server success.", this.addr, ",", this.key)
+	return true
+}
+
+
+func (this *LogicClient) ParseMsg(data []byte) bool{
+	if len(data) < 4{
+		glog.Error("[Logic] Message error.", this.Conn.RemoteAddr(), ",", data)
+		return false
+	}
+
+	// decrypt
+	//if (data[3] & )
+
+	return true
+}
+
+func (this *LogicClient) OnClose() {
+	this.Reset()
+
+	glog.Info("[Logic] Disconnect with ", this.addr, ", ", this.shutdown)
+	for !this.shutdown{
+		glog.Info("[Logic] Reconnecting..", this.addr)
+		if this.Connect(){
+			glog.Info("[Logic] Server reconnected.", this.addr)
+			break
+		}
+		time.Sleep(time.Second * 3)
 	}
 }
 
@@ -67,7 +121,7 @@ func (this *LogicClient) Connect() bool {
 
 
 
-
+////// Simplified mode
 func (this * LogicClient)SendCmd(mainCmd uint8, subCmd uint16, SeqId uint32, Buff []byte) bool {
 
 	// simplified
@@ -139,3 +193,89 @@ func (this *LogicClient) SendRpcCmd(uri string)bool{
 
 
 
+func (this *LogicClient) ParseRpcMsg(data []byte) bool {
+	httpflag := data[3]
+	httpcmd := usercmd.MsgType(int(data[5])<<8 | int(data[4]))
+
+	glog.Info("[Logic] Receive message: ", httpflag, "cmd=", httpcmd, ", len=",len(data))
+
+	switch httpcmd {
+	case usercmd.MsgType_ReqIntoFRoom:			/////////////
+		revCmd, ok := common.DecodeCmd(data[4:], httpflag, &usercmd.RetIntoFRoom{}).(*usercmd.RetIntoFRoom)				///////
+		if !ok {
+			return false
+		}
+
+		if *revCmd.Err == common.ErrorCodeUseFreeMatch {
+			glog.Info("[Login] Team match.")
+			return false
+		}
+
+		if *revCmd.Err == common.ErrorCodeOkay {
+			glog.Error("[Login] Room request error.", *revCmd.Err)
+			return false
+		}
+
+		this.loginInfo.Address = *revCmd.Addr
+		this.loginInfo.Key = *revCmd.Key
+		glog.Info("[Login] Room success.", this.loginInfo.Address)
+
+		this.roomcli.Connect(this.loginInfo.Address, this.loginInfo.Key, "test")
+		glog.Info("[Login] Room connected.",this.loginInfo.Address)
+
+	}
+}
+
+// Room Client
+type RoomClient struct {
+	gonet.TcpTask
+	roomcli 	*gonet.TcpClient
+	id 			uint64
+	name		string
+	dev			string
+}
+
+func NewRoomClient(name string) *RoomClient{
+	roomcli := &RoomClient{
+		TcpTask:	*gonet.NewTcpTask(nil),
+		name:		name,
+	}
+	roomcli.Derived = roomcli
+	return roomcli
+}
+
+func (this *RoomClient) Connect(address, key, name string) bool {
+	conn, err := this.roomcli.Connect(address)
+	if err != nil{
+		glog.Error("[Player] Connection failed.", address)
+		return false
+	}
+	this.Conn = conn
+	this.Start()
+	this.SendCmd(usercmd.MsgTypeCmd_Login, &usercmd.MsgLogin{
+		Name : name,
+		key : key,
+	})
+	return true
+}
+
+func (this *RoomClient) ParseMsg(data []byte, flag byte) bool{
+
+
+	return true
+}
+
+func (this *RoomClient) OnClose() {
+
+}
+
+func (this *RoomClient) SendCmd( cmd usercmd.MsgTypeCmd, msg usercmd.PbObj) error{
+	data, flag, err := common.EncodeGoCmd(uint16(cmd), msg)
+	if err != nil {
+		glog.Error("[Room] Send failed.", cmd, ", len: ",len(data), " err: ", err)
+		return nil
+	}
+
+	this.AsyncSend(data, flag)
+	return nil
+}
