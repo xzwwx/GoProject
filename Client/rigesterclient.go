@@ -34,9 +34,9 @@ func main(){
 
 	//var user_data User
 	rigester_data := map[string]interface{}{
-		"userName" : "xzw4",
+		"userName" : "xzw40",
 		"userPasswd":"123",
-		"userEmail":"88884@qq.com",
+		"userEmail":"888840@qq.com",
 		"userTel":"132456",
 		"userKey":"6666",
 	}

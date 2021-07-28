@@ -11,7 +11,9 @@ type Room struct {
 	timeLoop    uint64
 	stopCh      chan bool
 	isStop      bool
+	iscustom	bool
 
+	max_num		uint32			//max player number. default :8
 	totalTime 	uint64 //in second
 	endchan     chan bool
 }

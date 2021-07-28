@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package usercmd;
+
+import "base_go.proto";
+
+option go_package = "./;usercmd";
+
+enum CmdType{
+  None          = 0;  // Placeholder
+  Login         = 1;
+  TSerUserNum   = 2;
+  ChkReLogin    = 3;
+  SyncRoomTeam  = 5;
+  S2S           = 6;
+  InviteList    = 8;
+  AddRoom       = 17;
+  RemoveRoom    = 18;
+  UpdateRoom    = 19;
+  EndGame       = 20;
+  UpdateServer  = 21; // Update player number
+  LoadCinfig    = 22;
+  TJointRoom    = 32;
+  HeartBeat     = 37;
+
+  SubscribeSetRoom    = 301;
+  SubscribeStartRoom  = 304;
+  SubscribeCancelRoom = 305;
+
+  ServiceRegister     = 10001;
+  ServiceHeartBeat    = 10002;
+};
+
+
+message ReqServiceHeartBeat {
+
+}
+
+message RetServiceHeartBeat {
+
+}
+
+message ReqRegisterService {
+  string Service    = 1;
+  string Info       = 2;
+}
+
+message RetRegisterService {
+
+}
+
+//Verify between Server
+message ReqServerLogin {
+  string Address    = 1;  // external net
+  string Key        = 2;
+  uint32 SerType    = 3;  // Server name (room/team)
+  string WAddress   = 4;
+  bool NewSync      = 5;
+}
+
+message RetServerLogin {
+  uint32 Id = 1;
+}
+
+// Sync room team
+message ReqSyncRoomTeam{
+  message MemData{
+    uint64 Id   = 1;
+    string name = 2;
+
+  }
+
+  uint32 RoomState    = 1;
+  uint32 RServerId    = 2;  //RoomServer Id
+  string RAddress     = 3;  //RoomServer Address
+  uint32 RoomId       = 4;
+
+  uint32 MapId        = 12;
+  bool NewSync        = 13;
+  uint32 EndTime      = 14;
+}
+
+// Forward to other server's Client
+message S2SClientCmd {
+  uint32 ServerId   = 1;
+  uint64 UserId     = 2;
+  bytes Data        = 4;
+}
+
+message S2SCmd {
+  uint32 ServerId   = 1;
+  uint32 Flag       = 2;
+  bytes Data        = 3;
+}
+
+//Add Room
+message ReqAddRoom {
+  uint32 RoomType   = 1;
+  uint32 RoomId     = 2;
+  uint32 EndTime    = 3;
+
+}
+
+message RetAddRoom {
+  message RTeamData{
+    uint32 Id = 1;
+    uint32 name = 2;
+  }
+  uint32 RoomId = 1;
+  repeated RTeamData Datas = 2;
+}
+
+// Delete Room
+message ReqRemoveRoom {
+  uint32 RoomId   = 2;
+  bool IsCustom   = 3;
+}
+
+//
+message ReqEndGame {
+  uint32 RoomId   = 1;
+  uint64 UserId   = 2;
+}
+
+message ReqUpdateServer {
+  uint32 RoomNum  = 1;
+  uint32 UserNum  = 2;
+  uint32 RoomId   = 5;
+}
+
+
+// Loading Config
+message ReqLoadConfig {
+
+}
+
+// Join room
+message ReqTJointRoom{
+  uint64 OwnerId    = 1;
+  uint64 UserId     = 2;
+  string UserName   = 3;
+}
+
+//Room server Flag
+message GameRoomInfo {
+  string Address    = 1;
+  uint32 RoomId     = 2;
+}
+
+
+//////////Game///////////
+message ReqSyncFreePlayer {
+  message MemData {
+    uint64 Id       = 1;
+    string Name     = 10;
+  }
+  uint32 RoomState  = 1;
+  uint32 RServerId  = 2;  // Room server id
+  string RAddress   = 3;
+  uint32 Roomid     = 4;
+  uint32 Type       = 5;
+  uint32 RobotNum   = 6;
+  MemData OwnerData = 7;
+
+  bool NewSync      = 17;
+}
+
+message ReqReloadFreeMatch {
+  uint32 RoomId   = 1;
+  uint64 UserId   = 2;
+}
+/////////////////////////////
+
+
+
