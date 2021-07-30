@@ -5,8 +5,8 @@ import "base_go.proto";
 option go_package = "./;usercmd";
 
 enum MsgTypeCmd {
-  None          = 0;
-  Login         = 1;
+  None1          = 0;
+  Login1         = 1;    //--++++++++++++++++
   AddPlayer     = 3;
   RemovePlayer  = 4;
   Scene         = 5;
@@ -16,7 +16,7 @@ enum MsgTypeCmd {
   EndRoom       = 11;
   NewScene      = 13;
   ReSetNet      = 15;
-  HeartBeat     = 16;
+  HeartBeat1     = 16;    //++++++++++++++
   BeBomb        = 21; // = BeBreak
   SystemMsg     = 22;
 

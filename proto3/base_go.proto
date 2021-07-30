@@ -13,3 +13,4 @@ message ReqHttpArgData{
   repeated KeyVal Args = 1; //
   uint32 Cmd = 2;
 }
+

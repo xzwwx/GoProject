@@ -8,7 +8,7 @@ option go_package = "./;usercmd";
 
 enum CmdType{
   None          = 0;  // Placeholder
-  Login         = 1;
+  Login2         = 1;   //++++++++++++++++++++++++
   TSerUserNum   = 2;
   ChkReLogin    = 3;
   SyncRoomTeam  = 5;
@@ -21,7 +21,7 @@ enum CmdType{
   UpdateServer  = 21; // Update player number
   LoadCinfig    = 22;
   TJointRoom    = 32;
-  HeartBeat     = 37;
+  HeartBeat     = 37;    //------------------------------
 
   SubscribeSetRoom    = 301;
   SubscribeStartRoom  = 304;

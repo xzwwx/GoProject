@@ -9,5 +9,26 @@ option go_package = "./;usercmd";
 enum MsgType {
   Login         = 1;
   ReqIntoFRoom  = 5;
+};
+
+message ReqIntoRoom {
+  required uint64 UId      = 1;
+  optional string UserName = 2;
+}
+
+//Request Into room
+message RetIntoFRoom {
+  required uint32 Err   = 1;
+  optional string Addr  = 2;
+  optional string Key   = 3;
+  optional uint64 UId   = 4;
+  optional uint32 Tips  = 5;
+  optional uint32 RoomId = 6;
+  optional uint32 Priv  = 7;
+  optional uint64 OtherId = 8;
+  optional string AddrAll = 9;
+  optional uint64 PowerId = 10;
+  optional bool NewSync = 11;
 
 }
+

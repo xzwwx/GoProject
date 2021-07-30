@@ -76,11 +76,11 @@ func (m *ReqHttpArgData_KeyVal) Size() (n int){
 
 }
 
-func (m *ReqHttpArgData) Marshal()([]byte, error){
-	data := make([]byte, m.Size())
-	_, err = m.MarrshalTo(data)
-	return data, err
-}
+//func (m *ReqHttpArgData) Marshal()([]byte, error){
+//	data := make([]byte, m.Size())
+//	_, err = m.MarrshalTo(data)
+//	return data, err
+//}
 
 func (m *ReqHttpArgData) MarshalTo(dAtA []byte) (int, error){
 	var i int

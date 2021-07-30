@@ -13,6 +13,32 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+
+
+
+
+
+func StartHttpServer()bool {
+
+	http.HandleFunc("/login", login)
+
+	return true
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var pool *redis.Pool
 // redis List 用的key名
 var listkey = "ListKey"

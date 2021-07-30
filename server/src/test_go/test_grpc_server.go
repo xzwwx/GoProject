@@ -1,4 +1,4 @@
-package main
+package mainexpr
 
 import (
 	pb "usercmd"
