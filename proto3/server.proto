@@ -31,7 +31,28 @@ enum CmdType{
   ServiceHeartBeat    = 10002;
 };
 
+//++++++++++++++++++++++++++++++++++++++++++++++
+enum MsgTypeRpc {
+  Regist = 0;
+  Update = 1;
+}
+message ConnectRoomInfo{
+  fixed32 ip = 1;
+  uint32 port = 2;
+}
+message RoomResponse{
 
+}
+
+message RoomRequest{
+  MsgTypeRpc type = 1;
+  bytes data = 2;
+}
+
+service StreamRoomService {
+  rpc Route(stream RoomRequest) returns (stream RoomResponse){};
+}
+//++++++++++++++++++++++++++++++++++++++++++++++
 message ReqServiceHeartBeat {
 
 }

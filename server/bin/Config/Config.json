@@ -1,0 +1,24 @@
+{
+  "global": {
+
+  },
+  "logic": {
+    "listen": ":8090",
+    "db": "127.0.0.1:6379",
+    "log": "./log/Log_logic1.log",
+    "grpc": "127.0.0.1:10086",
+    "redis": ":6379"
+  },
+  "rcenter": {
+    "listen": ":9090",
+    "log": "./log/Log_rcenter1.log",
+    "grpc": ":10086"
+  },
+  "room": {
+    "port": ":9091",
+    "listen": ":9091",
+    "grpc": ":10086",
+    "log": "./log/Log_room1.log",
+    "time": "600"
+  }
+}
