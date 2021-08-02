@@ -27,7 +27,7 @@ func (this *RCenterClient) GetRoom (userid uint64, isnew bool, others interface{
 	reply := common.RetRoom{}
 	err := center.RemoteCall("RPCTask.GetRoom", &common.ReqRoom{
 		UserId: userid,
-		IsNew:  false,
+		//IsNew:  false,
 	}, &reply)
 	if err != nil {
 		return nil, false

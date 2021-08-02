@@ -1,7 +1,7 @@
 package main
 import (
+	"base/gonet"
 	glog "glog-master"
-	"gonet"
 	"io"
 	"net"
 	"runtime/debug"
@@ -98,13 +98,13 @@ func (this *RpcTask)Close() {
 
 func NewRpcTask(conn net.Conn) *RpcTask{
 	return &RpcTask{
-		closed: 	-1,
-		verified:	 false,
-		Conn: 		conn,
+		closed:     -1,
+		verified:   false,
+		Conn:       conn,
 		stopedChan: make(chan struct{}, 1),
-		recvBuff: 	gonet.NewByteBuffer(),
-		sendBuff: 	gonet.NewByteBuffer(),
-		signal: 	make(chan struct{}, 1),
+		recvBuff:   gonet.NewByteBuffer(),
+		sendBuff:   gonet.NewByteBuffer(),
+		signal:     make(chan struct{}, 1),
 	}
 }
 

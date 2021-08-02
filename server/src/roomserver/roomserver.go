@@ -2,9 +2,9 @@ package main
 
 import (
 	"base/env"
+	"base/gonet"
 	"flag"
 	"glog"
-	"gonet"
 	"math/rand"
 	"net/http"
 	"time"

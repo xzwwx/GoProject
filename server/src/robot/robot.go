@@ -1,9 +1,9 @@
 package main
 
 import (
+	"base/gonet"
 	"common"
 	glog "glog-master"
-	"gonet"
 	"net/url"
 	"strconv"
 	"strings"

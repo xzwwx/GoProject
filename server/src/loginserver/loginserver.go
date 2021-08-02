@@ -1,9 +1,7 @@
 package main
 
 import (
-	//"base/env"
-	"github.com/golang/protobuf/proto"
-	"net/rpc"
+	"base/gonet"
 	"common"
 	"context"
 	"crypto/md5"
@@ -11,10 +9,12 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-redis/redis"
+	//"base/env"
+	"github.com/golang/protobuf/proto"
 	"glog"
-	"gonet"
 	"io"
 	"log"
+	"net/rpc"
 	"strconv"
 
 	//"math/rand"

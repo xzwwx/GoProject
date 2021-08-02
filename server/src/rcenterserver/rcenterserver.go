@@ -5,11 +5,11 @@ import (
 	"base/rpc"
 	"time"
 
+	"base/gonet"
 	//"bytes"
 	"flag"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"gonet"
 	"glog"
 	"strconv"
 
@@ -38,7 +38,7 @@ func RCenterServer_GetMe() *RCenterServer {
 	return serverm
 }
 
-////rpc
+///////rpc
 type RetIntoRoom struct {
 }
 
@@ -57,14 +57,11 @@ func (q *RetIntoRoom) RetRoom(request *usercmd.ReqIntoRoom, reply *usercmd.RetIn
 
 	reply.Key = proto.String(strconv.FormatInt(int64(uid), 10)+*username)
 
-
-
 	fmt.Println("Out RPC")
 
 	return nil
 }
 
-////
 func Acc(listener net.Listener){
 	for {
 		conn, err := listener.Accept()
@@ -76,6 +73,8 @@ func Acc(listener net.Listener){
 		fmt.Println("Server success...")
 	}
 }
+/////////
+
 func (this * RCenterServer) Init() bool{
 
 
@@ -98,7 +97,6 @@ func (this *RCenterServer) MainLoop() {
 }
 
 func (this *RCenterServer) Final() bool {
-
 
 	return true
 }

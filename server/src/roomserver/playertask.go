@@ -1,8 +1,8 @@
 package main
 
 import (
+	"base/gonet"
 	"glog"
-	"gonet"
 	"google.golang.org/genproto/googleapis/ads/googleads/v3/common"
 	"net"
 	"sync"
@@ -56,10 +56,10 @@ type PlayerOp struct {
 
 func NewPlayerTask(conn net.Conn) *PlayerTask{
 	s := &PlayerTask{
-		tcptask: gonet.NewTcpTask(conn),
-		activeTime:time.Now(),
+		tcptask:    gonet.NewTcpTask(conn),
+		activeTime: time.Now(),
 		onlineTime: time.Now().Unix(),
-		isUdp: true,
+		isUdp:      true,
 	}
 	s.tcptask.Derived = s
 	return s

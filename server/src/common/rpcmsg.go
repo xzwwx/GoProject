@@ -57,11 +57,13 @@ func (this *HttpBody) Close() error {
 }
 
 
+
+
 // Request room
 type ReqRoom struct {
-	UserId 	uint64
-	IsNew 	bool
-	//	others
+	UserId 		uint64
+	UserName 	string
+	//IsNew 	bool
 }
 
 // Reply get room
@@ -72,3 +74,4 @@ type RetRoom struct {
 	EndTime		uint32
 	NewSync		bool
 }
+

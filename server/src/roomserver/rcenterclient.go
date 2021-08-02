@@ -2,10 +2,10 @@ package main
 
 import (
 	"base/env"
+	"base/gonet"
 	"common"
 	"github.com/golang/protobuf/proto"
 	"glog"
-	"gonet"
 	"usercmd"
 )
 
@@ -66,9 +66,9 @@ func (this *RCenterClient) OnClose() {
 
 
 /////////////////////////////////////
-func (this *RCenterClient) SendCmd(cmd usercmd.CmdType, msg common.Message) bool {		//common.Message is an interface which is used ot Encode/Decode message
+func (this *RCenterClient) SendCmd(cmd usercmd.CmdType, msg []byte) bool {		//common.Message is an interface which is used ot Encode/Decode message
 	//Encode
-	data, flag, err, := common.EncodeGoCmd(uint16(cmd), msg)		///-----------------------
+	data, flag, err := common.EncodeGoCmd(uint16(cmd), msg)		///-----------------------
 	if err != nil{
 		glog.Info("[Service] Send Failed.", cmd, ", len:", len(data), ", err:", err)
 		return false

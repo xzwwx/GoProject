@@ -4,7 +4,6 @@ import (
 	"glog"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 
 )
@@ -28,9 +27,7 @@ func startHttpClient(){
 }
 
 func GetRoom(w http.ResponseWriter, req *http.Request){
-	id, _ := strconv.ParseUint(req.URL.Query()["id"][0],10,32)
-	r, _ := RoomMgr_GetMe().GetRooms(&PlayerTask{
-		id: uint64(id),
-	})
+	//id, _ := strconv.ParseUint(req.URL.Query()["id"][0],10,32)
+
 
 }
