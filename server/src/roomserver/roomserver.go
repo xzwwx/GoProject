@@ -38,7 +38,7 @@ func (this *RoomServer) Init() bool {
 	glog.Info("[Start] Initialization.")
 
 	//check
-	pprofport := env.Get("room", "pprofport")
+	pprofport := env.Get("room", "port")
 	if pprofport != "" {
 		go func() {
 			http.ListenAndServe(pprofport, nil)
@@ -102,15 +102,15 @@ func main() {
 		return
 	}
 
-	loglevel := env.Get("global", "loglevel")
-	if loglevel != "" {
-		flag.Lookup("stderrthreshold").Value.Set(loglevel)
-	}
-
-	logtostderr := env.Get("global", "logtostderr")
-	if loglevel != "" {
-		flag.Lookup("logtostderr").Value.Set(logtostderr)
-	}
+	//loglevel := env.Get("global", "loglevel")
+	//if loglevel != "" {
+	//	flag.Lookup("stderrthreshold").Value.Set(loglevel)
+	//}
+	//
+	//logtostderr := env.Get("global", "logtostderr")
+	//if loglevel != "" {
+	//	flag.Lookup("logtostderr").Value.Set(logtostderr)
+	//}
 
 	rand.Seed(time.Now().Unix())
 

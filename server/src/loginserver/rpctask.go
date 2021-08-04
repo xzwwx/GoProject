@@ -2,7 +2,6 @@ package main
 
 import (
 	"base/env"
-	"github.com/golang/protobuf/proto"
 	"net/rpc"
 	"common"
 	"encoding/json"
@@ -64,13 +63,18 @@ func (handler *RPCLogicTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	raddr := env.Get("rcenter", "listen")
 	client, err := rpc.Dial("tcp", raddr)
 	if err != nil {
+		glog.Error("[RPC] Dail error ", err)
+
 		log.Fatal("dialing:", err)
 	}
 	defer func() {
-		if err := client.Close();err == nil {
+		if err := client.Close();err != nil {
 			glog.Error("[RPC] Client close error", err)
 		}
 	}()
+
+	// Parse message type : /game?c=xxx
+	// To do
 
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
@@ -85,33 +89,34 @@ func (handler *RPCLogicTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		glog.Error("[RPC] Body To Json failed, err:", err)
 		panic("Error")
 	}
-	fmt.Println("++++++++++++++",data)
 
 	//w.Write([]byte(data["username"]))
 
 
 	uid, _ := strconv.Atoi(data["uid"])
-	var reply = &usercmd.RetIntoFRoom{}
-	var param = &usercmd.ReqIntoRoom{
-		UId: proto.Uint64(uint64(uid)),
-		UserName: proto.String(data["username"]),
-	}
-	if reply.GetKey() == ""{
-		fmt.Println("------------",uid, "--" )
+	//var reply = &usercmd.RetIntoFRoom{}
+	//var param = &usercmd.ReqIntoRoom{
+	//	UId: proto.Uint64(uint64(uid)),
+	//	UserName: proto.String(data["username"]),
+	//}
+
+	var reply = &common.RetRoom{}
+	var param = &common.ReqRoom{
+		UserId: uint64(uid),
+		UserName: data["username"],
 	}
 
 
-	err = client.Call("RetIntoRoom.RetRoom", &param, &reply)
-	fmt.Println("-----Call end-------",uid, "--" )
+	err = client.Call("RPCTask.GetFreeRoom", &param, &reply)
+	fmt.Println("-----Call end-------", reply.Address, "--" )
 
 	if err != nil {
+		glog.Error("[RPC] Call error", err)
+
 		log.Fatal(err)
 	}
-	if reply.GetKey() == ""{
-		fmt.Println("----////--",uid, "--" )
-	}
 
-	w.Write([]byte(reply.GetKey()))
+	w.Write([]byte(string(reply.Address)))
 }
 
 

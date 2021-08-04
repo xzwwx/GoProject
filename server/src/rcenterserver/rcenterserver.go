@@ -1,6 +1,7 @@
 package main
 
 import (
+	"base/env"
 	//"base/env"
 	"base/rpc"
 	"time"
@@ -49,12 +50,16 @@ func (q *RetIntoRoom) RetRoom(request *usercmd.ReqIntoRoom, reply *usercmd.RetIn
 	uid := request.GetUId()
 	username := request.UserName
 	fmt.Println(strconv.FormatInt(int64(uid), 10))
-	fmt.Println(*username,"66666666")
+
+
+	// Request into room
+	// To do
+
+
 
 	reply.Err = proto.Uint32(uint32(0))
 	reply.RoomId = proto.Uint32(uint32(107))
 	reply.Addr = proto.String("127.0.0.1:9494")
-
 	reply.Key = proto.String(strconv.FormatInt(int64(uid), 10)+*username)
 
 	fmt.Println("Out RPC")
@@ -78,9 +83,11 @@ func Acc(listener net.Listener){
 func (this * RCenterServer) Init() bool{
 
 
-	rpc.RegisterName("RetIntoRoom", new(RetIntoRoom))
+	rpc.RegisterName("RPCTask", new(RPCTask))
 	fmt.Println("RegisterName success...")
-	listener, err := net.Listen("tcp", ":9099")
+
+	addr := env.Get("rcenter", "listen")
+	listener, err := net.Listen("tcp", addr)
 	fmt.Println("Listen success...")
 
 	if err != nil {
@@ -111,11 +118,11 @@ var (
 )
 
 func main() {
-	//flag.Parse()
+	flag.Parse()
 	//
-	//if !env.Load(*config){
-	//	return
-	//}
+	if !env.Load(*config){
+		return
+	}
 	//loglevel := env.Get("global", "loglevel")
 	//if loglevel != "" {
 	//	flag.Lookup("stderrthreshold").Value.Set(loglevel)
@@ -126,13 +133,13 @@ func main() {
 	//	flag.Lookup("logtostderr").Value.Set(logtostderr)
 	//}
 	//
-	//if *logfile != ""{
-	//	glog.SetLogFile(*logfile)
-	//}else{
-	//	glog.SetLogFile(env.Get("rcenter","log"))
-	//}
-	//
-	//defer glog.Flush()
+	if *logfile != ""{
+		glog.SetLogFile(*logfile)
+	}else{
+		glog.SetLogFile(env.Get("rcenter","log"))
+	}
+
+	defer glog.Flush()
 
 	RCenterServer_GetMe().Main()
 

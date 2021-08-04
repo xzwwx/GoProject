@@ -86,11 +86,11 @@ func ServerTaskMgr_GetMe() *ServerTaskMgr{
 	return servertm
 }
 
-func (this *ServerTaskMgr) GetServer() (uint16 , string, bool) {
+func (this *ServerTaskMgr) GetServer() (uint16, string, bool) {
 
 	// -----------------xie si--------
 	// To do
 	// -----------------xie si--------
-	return uint16(10000), "127.0.0.1:9999", true
+	return uint16(10000), "127.0.0.1:9091", true
 }
 

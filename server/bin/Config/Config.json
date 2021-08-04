@@ -19,6 +19,7 @@
     "listen": ":9091",
     "grpc": ":10086",
     "log": "./log/Log_room1.log",
-    "time": "600"
+    "time": "600",
+    "rcenter": ":9090"
   }
 }

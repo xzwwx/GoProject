@@ -3,7 +3,7 @@ package main
 import (
 	"base/gonet"
 	"glog"
-	"google.golang.org/genproto/googleapis/ads/googleads/v3/common"
+	"common"
 	"net"
 	"sync"
 	"time"

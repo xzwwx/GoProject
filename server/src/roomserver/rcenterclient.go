@@ -3,8 +3,6 @@ package main
 import (
 	"base/env"
 	"base/gonet"
-	"common"
-	"github.com/golang/protobuf/proto"
 	"glog"
 	"usercmd"
 )
@@ -40,12 +38,12 @@ func (this *RCenterClient) Connect() bool {
 
 	this.task = task
 
-	this.SendCmd(usercmd.CmdType_Login, &usercmd.ReqServerLogin{
-		Address: (env.Get("room", "local")),
-		Key: 	 (env.Get("room","key")),
-		SerType: (common.ServerTypeRoom),
-		NewSync: (true),
-	})
+	//this.SendCmd(usercmd.CmdType_Login, &usercmd.ReqServerLogin{
+	//	Address: (env.Get("room", "local")),
+	//	Key: 	 (env.Get("room","key")),
+	//	SerType: (common.ServerTypeRoom),
+	//	NewSync: (true),
+	//})
 
 	glog.Info("[Start] Connected to server successfully.", loginaddr)
 	return true
@@ -68,31 +66,31 @@ func (this *RCenterClient) OnClose() {
 /////////////////////////////////////
 func (this *RCenterClient) SendCmd(cmd usercmd.CmdType, msg []byte) bool {		//common.Message is an interface which is used ot Encode/Decode message
 	//Encode
-	data, flag, err := common.EncodeGoCmd(uint16(cmd), msg)		///-----------------------
-	if err != nil{
-		glog.Info("[Service] Send Failed.", cmd, ", len:", len(data), ", err:", err)
-		return false
-	}
-
-	this.task.AsyncSend(data, flag)
+	//data, flag, err := common.EncodeGoCmd(uint16(cmd), msg)		///-----------------------
+	//if err != nil{
+	//	glog.Info("[Service] Send Failed.", cmd, ", len:", len(data), ", err:", err)
+	//	return false
+	//}
+	//
+	//this.task.AsyncSend(data, flag)
 
 	return true
 }
 /////////////////////////////////////
 
-func (this *RCenterClient) SendCmdToServer(serverid uint16, cmd usercmd.CmdType, msg proto.Message) bool {
-	data, flag, err := common.EncodeCmd(uint16(cmd), msg)
-	if err != nil{
-		glog.Info("[Service] Send Failed.", cmd, ", len:", len(data), ", err:", err)
-		return false
-	}
-	reqCmd := &usercmd.S2SCmd{
-		ServerId: uint32(serverid),
-		Flag: (uint32(flag)),
-		Data: data,
-	}
-	return this.SendCmd(usercmd.CmdType_S2S, reqCmd)
-}
+//func (this *RCenterClient) SendCmdToServer(serverid uint16, cmd usercmd.CmdType, msg proto.Message) bool {
+//	data, flag, err := common.EncodeCmd(uint16(cmd), msg)
+//	if err != nil{
+//		glog.Info("[Service] Send Failed.", cmd, ", len:", len(data), ", err:", err)
+//		return false
+//	}
+//	reqCmd := &usercmd.S2SCmd{
+//		ServerId: uint32(serverid),
+//		Flag: (uint32(flag)),
+//		Data: data,
+//	}
+//	return this.SendCmd(usercmd.CmdType_S2S, reqCmd)
+//}
 /////////////////////////////////////////////
 
 
@@ -101,20 +99,22 @@ func (this *RCenterClient) GetId() uint16{
 }
 
 func (this *RCenterClient) AddRoom(roomtype, roomid, endtime uint32, robot uint32) bool {
-	reqCmd := &usercmd.ReqAddRoom{
-		RoomType: roomtype,
-		RoomId: roomid,
-		EndTime: endtime,
-	}
-	return this.SendCmd(usercmd.CmdType_AddRoom, reqCmd)
+	//reqCmd := &usercmd.ReqAddRoom{
+	//	RoomType: roomtype,
+	//	RoomId: roomid,
+	//	EndTime: endtime,
+	//}
+	//return this.SendCmd(usercmd.CmdType_AddRoom, []byte(reqCmd))
+	return true
 }
 func (this *RCenterClient) RemoveRoom(roomtype, roomid uint32, iscustom bool) bool {
-	reqCmd := &usercmd.ReqRemoveRoom{
-		//RoomType: roomtype,
-		RoomId: roomid,
-		IsCustom: iscustom,
-	}
-	return this.SendCmd(usercmd.CmdType_RemoveRoom, reqCmd)
+	//reqCmd := &usercmd.ReqRemoveRoom{
+	//	//RoomType: roomtype,
+	//	RoomId: roomid,
+	//	IsCustom: iscustom,
+	//}
+	//return this.SendCmd(usercmd.CmdType_RemoveRoom, reqCmd)
+	return true
 }
 
 //func (this *RCenterClient) UpdateRoom(roomtype, roomid, endtime uint32,  iscustom bool, robot uint32) bool {
@@ -127,19 +127,22 @@ func (this *RCenterClient) RemoveRoom(roomtype, roomid uint32, iscustom bool) bo
 //}
 
 func (this *RCenterClient) EndGame(roomid uint32, userid uint64) bool {
-	reqCmd := &usercmd.ReqEndGame{
-		RoomId: roomid,
-		UserId: userid,
-	}
-	return this.SendCmd(usercmd.CmdType_EndGame, reqCmd)
+	//reqCmd := &usercmd.ReqEndGame{
+	//	RoomId: roomid,
+	//	UserId: userid,
+	//}
+	//return this.SendCmd(usercmd.CmdType_EndGame, reqCmd)
+	return true
 }
 
 func (this *RCenterClient) UpdateServer(roomnum, usernum int32) bool {
-	reqCmd := &usercmd.ReqUpdateServer{
-		RoomNum: (uint32(roomnum)),
-		UserNum: (uint32(usernum)),
+	//reqCmd := &usercmd.ReqUpdateServer{
+	//	RoomNum: (uint32(roomnum)),
+	//	UserNum: (uint32(usernum)),
+	//
+	//}
+	//return this.SendCmd(usercmd.CmdType_UpdateServer, reqCmd)
+	return true
 
-	}
-	return this.SendCmd(usercmd.CmdType_UpdateServer, reqCmd)
 }
 

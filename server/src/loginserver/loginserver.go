@@ -52,7 +52,7 @@ func (this *LoginServer) Init() bool {
 	//inlisten := env.Get("login", "inlisten")
 	//err := this.rpcserver.BindAccept
 
-	http.Handle("/", HandleLogic)
+	http.Handle("/game", HandleLogic)
 	fmt.Println("------Handle ok")
 	listen := env.Get("logic", "listen")
 	go http.ListenAndServe(listen, nil)

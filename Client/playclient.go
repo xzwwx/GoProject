@@ -9,7 +9,7 @@ import (
 )
 
 func main(){
-	url := "http://127.0.0.1:8090"
+	url := "http://127.0.0.1:8090/game"
 
 	//json
 	contentType := "application/json"
