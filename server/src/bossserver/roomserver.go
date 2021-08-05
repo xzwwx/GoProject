@@ -49,6 +49,7 @@ func (this *RoomServer) Init() bool {
 	//if()
 
 	//Redis
+	//To do
 
 
 	// Binding Local Port
@@ -69,7 +70,9 @@ func (this *RoomServer) Init() bool {
 }
 
 func (this *RoomServer) UdpLoop() {
-
+	//for {
+	//	//conn, err := this.roomserUdp.Accept()
+	//}
 }
 
 func (this *RoomServer) MainLoop() {
@@ -81,6 +84,7 @@ func (this *RoomServer) MainLoop() {
 }
 
 func (this *RoomServer) Final() bool {
+	this.roomser.Close()
 
 
 	return true

@@ -6,21 +6,25 @@ option go_package = "./;usercmd";
 
 enum MsgTypeCmd {
   None1          = 0;
-  Login1         = 1;    //--++++++++++++++++
+  Login1         = 1;    //--Login
   AddPlayer     = 3;
   RemovePlayer  = 4;
   Scene         = 5;
-  Move          = 6;
-  LayBomb       = 7;  // = Break
-  Death         = 10;
+  Move          = 6;     //  Player move
+  LayBomb       = 7;     // = Break
+  Death         = 10;    // Player dead
   EndRoom       = 11;
-  NewScene      = 13;
+  NewScene      = 13;   // Create scene
   ReSetNet      = 15;
-  HeartBeat1     = 16;    //++++++++++++++
-  BeBomb        = 21; // = BeBreak
+  HeartBeat     = 16;    //++++++++++++++
+  BeBomb        = 21;    // = BeBreak
   SystemMsg     = 22;
 
+  EatObject     = 24;   // Eat object
+  Combine       = 25;   // Kill or help
+
   ErrorMsg      = 23;
+
 
   SceneSync     = 100;
   InitSyncData  = 101;

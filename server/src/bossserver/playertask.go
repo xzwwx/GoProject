@@ -2,16 +2,20 @@ package main
 
 import (
 "base/gonet"
-"glog"
+	"fmt"
+	"glog"
 "common"
 "net"
 "sync"
-"time"
+	"sync/atomic"
+	"time"
+	"usercmd"
 )
 
 const (
 	Task_Max_Timeout = 1
-	OpsPerSecond = 12
+	OpsPerSecond = 3		// max lay bomb per second: zui duo mei miao fang 3 ge bombs
+	OpsNumPerSecond = 10 	// mei miao zui duo cao zuo 10 ci
 )
 
 type PlayerTask struct {
@@ -26,10 +30,15 @@ type PlayerTask struct {
 	udata *common.UserData
 	uobjs []uint32
 
-	power uint32
-	speed uint32
+	direction int32		// direction
+	power int32
+	speed int32			//Speed
 	lifenum uint32
 	state uint32
+	hasMove int32
+
+	lastLayBomb 	int32 	 	// last lay bomb times
+	lastLayBombTime int64 		// last .. time
 
 	activeTime	time.Time
 	onlineTime	int64
@@ -43,15 +52,24 @@ const (
 	PlayerMoveOp
 	PlayerLayBombOp
 	PlayerCombineOp
+	PlayerEatObject
 )
 
-type PlayerOp struct {
+type PlayerOp_FrameSync struct {
 	player  	*PlayerTask
 	cmdParam	uint32
 	opType 		PlayerOpType
 	loginUsers	map[uint64]bool
 	toPlayerId	uint64
 	Opts 		*UserOpt
+}
+
+type PlayerOp struct {
+	playerId 	uint64
+	cmdParam 	uint32
+	opType 		PlayerOpType
+	loginUsers 	map[uint64]bool
+	toPlayerId 	uint64
 }
 
 func NewPlayerTask(conn net.Conn) *PlayerTask{
@@ -66,14 +84,146 @@ func NewPlayerTask(conn net.Conn) *PlayerTask{
 }
 
 func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
+	this.activeTime = time.Now()
+	if len(data) < 2{
+		return true
+	}
+	cmd := usercmd.MsgTypeCmd(common.GetCmd(data))
+	if !this.IsVerified() {
+		// Verify login
+		if cmd != usercmd.MsgTypeCmd_Login1 {
+			glog.Error("[Login] Not login cmd. ", this.RemoteAddr(), ", ", cmd)
+			return false
+		}
+
+		revCmd, ok := common.DecodeGprotoCmd(data, flag, &usercmd.MsgLogin{}).(*usercmd.MsgLogin)
+		if !ok {
+			// return error msg
+			// SendCmd()
+		}
+		glog.Info("[Login] Received login request", this.RemoteAddr(), ", ", revCmd.Key, ", ")
+
+		//Check Key
+		var newLogin bool = true
+		if s := ScenePlayerMgr_GetMe().GetPlayer(revCmd.Key); s!= nil {
+			this.udata = s.udata
+			newLogin = false
+		}
+
+		this.key = revCmd.Key
+		this.id = this.udata.Id
+		this.name = string("player")
+
+		otask := PlayerTaskMgr_GetMe().GetTask(this.id)
+		if otask != nil {
+			glog.Info("[Login] ReLogin.", otask.id, ", ", otask.key)
+		}
+		this.Verify()
+
+		PlayerTaskMgr_GetMe().Add(this)
+
+		if newLogin {
+			room := RoomMgr_GetMe().getRoomById(this.udata.RoomId)
+			if room != nil {
+
+			}
+		}
+
+		glog.Info("[Login] Verified account success. ", this.RemoteAddr(), ", ", this.udata.Id, ", ", this.udata.Account,", ", this.key)
+
+		//var joinroomtype uint32
+
+		//if this.udata.Model
+
+		if !RoomMgr_GetMe().AddPlayer(this) {
+			return false
+		}
+
+		this.online()
+
+		glog.Info("[Login] Success,", this.RemoteAddr(), ", ", this.udata.RoomAddr, ", ", this.udata.RoomId,", ",
+			this.udata.Id, ", ", this.udata.Account,", ", this.key)
+		return true
+	}
+
+	//heartbeat
+	//if cmd == usercmd.MsgTypeCmd_HeartBeat1 {
+	//
+	//}
+
+	if this.room == nil || this.room.IsClosed() {
+		glog.Info("[Message] Room end.")
+		return false
+	}
 
 
+	switch cmd {
+	case usercmd.MsgTypeCmd_Move:
+		// Player move
+		revCmd := &usercmd.MsgMove{}
+		if common.DecodeGoCmd(data, flag, revCmd) != nil {
+			return false
+		}
 
+		atomic.StoreInt32(&this.direction, revCmd.Way)
+		atomic.StoreInt32(&this.speed, revCmd.Speed)
+		atomic.StoreInt32(&this.hasMove, 1)
+
+		fmt.Println("Move++",this.id)
+
+	case usercmd.MsgTypeCmd_LayBomb:
+		// Lay bombs
+		timenow := time.Now().Unix()
+		if this.lastLayBombTime <= timenow {
+			if this.lastLayBomb >= OpsNumPerSecond{
+				glog.Error("[Lay Bomb] Too fast. ", this.udata.RoomId, ", ", this.udata.Id, ", ", this.udata.Account, ", ", this.lastLayBomb)
+			}
+			this.lastLayBombTime = timenow + 1
+			this.lastLayBomb = 0
+		}
+		this.lastLayBomb ++
+		if this.lastLayBomb > OpsPerSecond {
+			return true
+		}
+		this.room.chan_PlayerOp <- &PlayerOp{playerId: this.id, cmdParam: 0, opType: PlayerLayBombOp}
+
+		fmt.Println("Lay Bomb++", this.id)
+
+	case usercmd.MsgTypeCmd_Death:
+		//
+
+	case usercmd.MsgTypeCmd_BeBomb:
+		// Be bombed: bei zha dao
+
+	case usercmd.MsgTypeCmd_EatObject:
+		// Eat object
+	case usercmd.MsgTypeCmd_Combine:
+		//
+
+	default:
+		glog.Error("[Player] Unknown Cmd. ", this.id, ", ", this.name, ", ", cmd)
+	}
 	return true
 }
 
-func (this *PlayerTask) OnClose() {
+func (this * PlayerTask) Verify() {
+	this.tcptask.Verify()
+}
+func (this *PlayerTask) IsVerified() bool {
+	// if this.isUdp
+	return this.tcptask.IsVerified()
+}
 
+func (this *PlayerTask) OnClose() {
+	if !this.IsVerified() {
+		return
+	}
+	// offline delete from room
+
+}
+
+func (this *PlayerTask) RemoteAddr() string {
+	return this.tcptask.RemoteAddr()
 }
 
 func (this *PlayerTask) Start(){
@@ -91,6 +241,35 @@ func (this *PlayerTask) Stop() bool {
 	return true
 }
 
+//player online ; refresh room and server
+func (this *PlayerTask) online() {
+	room := this.room
+	if room != nil && !room.IsClosed() {
+		// update
+		// To do
+		// RedisMgr_GetMe()
+
+		// RCenterClient_GetMe().UpdateRoom()
+
+
+		go func() {
+			//deng lu li shi
+			room.AddLoginUser(this.id)
+
+		}()
+
+	}
+	RCenterClient_GetMe().UpdateServer(RoomMgr_GetMe().getNum(), PlayerTaskMgr_GetMe().GetNum())
+}
+
+func (this *PlayerTask) offline() {
+
+}
+
+func (this *PlayerTask) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message){
+	//data = make([]byte, common.CmdHeaderSize + msg)
+	//this.
+}
 
 
 

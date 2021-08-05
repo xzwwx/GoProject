@@ -12,6 +12,7 @@ type RoomMgr struct{
 	runrooms map[uint32]*Room
 	endmutex sync.RWMutex
 	endrooms map[uint32]int64
+	endChan	chan uint32
 
 }
 var roommgr *RoomMgr
