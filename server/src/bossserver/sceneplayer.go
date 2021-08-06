@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"usercmd"
 )
 
 type ScenePlayer struct {
@@ -16,17 +17,24 @@ type ScenePlayer struct {
 	self 		*PlayerTask
 	playertask 	*PlayerTask
 	scene 		*Scene
-	curflag 	map[uint32]*ScenePlayer
+
+	curflag 		map[uint32]*ScenePlayer
 	otherPlayers 	map[uint64]*ScenePlayer
-	rangebombs	[]*Bomb
+	rangeBombs	[]*Bomb		//current bombs
 	bombs		[]*Bomb
 
 	senddie		bool
 
+	// neng fou fen li chu lai
+	PlayerMove
 	isMove		bool
-	X 			uint32
-	Y 			uint32
-
+	pos 		Vector2
+	nextpos 	Vector2
+	speed 		uint32
+	direction 	uint32
+	lifeState  	uint32  // 0: dead   1: alive 	2: jelly
+	bombNum 	uint32  //
+	bombLeft	uint32
 
 	//offline data
 	udata 		*common.UserData
@@ -46,8 +54,10 @@ func NewScenePlayer(player *PlayerTask, scene *Scene) *ScenePlayer {
 		playertask: player,
 		curflag: make(map[uint32]*ScenePlayer),
 		senddie: false,
-		X: r.Uint32(),
-		Y: r.Uint32(),
+		pos: Vector2{
+			x: r.Uint32(),
+			y: r.Uint32(),
+		},
 	}
 	return s
 }
@@ -76,15 +86,100 @@ func (this *ScenePlayer) Update(perTime float64, scene *Scene){
 
 	}
 
+}
 
+// Send update msg to all
+func (this *ScenePlayer) sendSceneMsg(scene *Scene){
+var (
+	Moves = scene.pool.moveFree[:0]
+	//Bombs =
+)
+	// players move msg
+	for _, playermove := range this.otherPlayers {
+		if playermove.isMove {
+			move := &usercmd.BallMove{
+				Id: playermove.id,
+				X: int32(playermove.pos.x),
+				Y: int32(playermove.pos.y),
+				Nx: int32(playermove.nextpos.x),
+				Ny: int32(playermove.nextpos.y),
+			}
+			Moves = append(Moves,move)
+		}
+	}
 
+	if len(Moves) != 0 {
+		msg := &scene.pool.msgScene
+		msg.Moves = Moves
+		msg.Frame = scene.frame
+
+		this.sendSceneMsgToNet(msg, scene)
+	}
 
 }
 
+func (this *ScenePlayer) sendSceneMsgToNet(msg *usercmd.MsgScene, scene *Scene) {
+	if this.self != nil {
+		newPos := msgSceneToBytes(uint16(usercmd.MsgTypeCmd_NewScene), msg, scene.msgBytes)
 
+		//TCP
+		this.self.AsyncSend(scene.msgBytes[:newPos], 0)
+	}
+}
 
 // Update players in scene
 func (this *ScenePlayer) UpdateViewPlayers(scene *Scene){
+}
+
+func (this *ScenePlayer) AsyncSend(buffer []byte, flag byte)  {
+
+	this.self.AsyncSend(buffer, flag)
+}
+
+// Time Action
+func (this *ScenePlayer) TimeAction(room *Room, timenow time.Time) bool {
+
+
+	return true
+}
+
+
+//Lay bomb
+func (this *ScenePlayer) LayBomb (room *Room) {
+
+	var (
+		isLayBomb = false
+		scene = &room.Scene
+	)
+	if this.bombLeft > 0 {
+		cell := scene.GetCellState(this.pos.x, this.pos.y)
+		if cell == 0 {
+			timenow := time.Now().Unix()
+			bomb := &Bomb{
+				pos: this.pos,
+				player: this,
+				layTime: timenow,
+				isdelete: false,
+			}
+			this.rangeBombs = append(this.rangeBombs, bomb)
+			this.bombLeft --
+			scene.rangeBalls = append(scene.rangeBalls, bomb)
+			isLayBomb = true
+		}
+
+	}
+	if isLayBomb {
+		this.SendCmd(usercmd.MsgTypeCmd_LayBomb, &usercmd.MsgLayBomb{})
+	}
+
+	if room != nil {
+		
+	}
+
+}
+
+// Player Send Cmd
+func (this * ScenePlayer) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message) bool {
 
 }
 
@@ -133,9 +228,6 @@ func (this *ScenePlayerMgr) GetPlayer(key string) *ScenePlayer {
 
 
 
-
-
-
 ////////////
 func (this *ScenePlayer) Move(scene *Scene, speed, direction float64) {
 
@@ -147,10 +239,4 @@ func (this *ScenePlayer) Move(scene *Scene, speed, direction float64) {
 }
 func (this *ScenePlayer) MoveVec(scene *Scene, speed, direction float64 ){
 	//this.X =
-}
-
-
-
-func (this *ScenePlayer) sendSceneMsg(){
-
 }

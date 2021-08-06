@@ -73,7 +73,7 @@ message MsgLoginResult {
   uint64 id           = 2;
   string name         = 3;
   repeated MsgPlayer others = 4;
-  repeated MsgBall balls = 5;
+  repeated MsgBomb balls = 5;
   uint32 time         = 6;
   uint32 frame        = 7;
   uint32 Local        = 8;
@@ -102,16 +102,12 @@ message MsgLoginResult {
 
 
 // Bomb Ball
-message MsgBall{
+message MsgBomb{
   uint32 id           = 1;
-  int32 type          = 2;
   uint64 own          = 3;
-  uint32 score        = 4;  // power
   int32 x             = 6;
   int32 y             = 7;
-  int32 nx            = 8;  //next x
-  int32 ny            = 9;
-  uint32 PreId        = 10;
+  bool isDelete        = 10;
   uint32 DecayTime    = 12; //bomb time
 
 }
@@ -119,7 +115,7 @@ message MsgBall{
 
 // (Ball) Move message
 message BallMove{
-  uint32 id     = 1;
+  uint64 id     = 1;
   int32 x       = 2;
   int32 y       = 3;
   int32 nx      = 4;
@@ -152,7 +148,7 @@ message MsgRemovePlayer{
 
 // Move request
 message MsgMove{
-  int32 way = 1;    // direction
+  int32 direction = 1;    // direction
   int32 speed = 2;  // = power
 }
 
@@ -173,15 +169,24 @@ message UdpBallMove {
   fixed64 pos = 2;  // : x<<48 | y << 32 | nx <<16 | ny
 }
 
+// Update Scene
+message MsgScene {
+  repeated BallMove moves = 4;
+
+  uint32 frame = 6;
+}
+
 // UDP move msg
 message MsgSceneUdpMove {
   repeated UdpBallMove balls = 1;
 }
 
 // Lay Bomb request
-message MsgBreak {
-  uint32 BeBreak = 1; // Lay Bomb
-  uint32 BreakCount = 2;  // Bomb number rested
+message MsgLayBomb {
+  uint32 layBomb = 1; // Lay Bomb
+  uint32 leftCount = 2;  // Bomb number rested
+  uint32 x = 3;
+  uint32 y = 4;
 }
 
 /////////
@@ -274,15 +279,17 @@ message SyncPlayer {
   uint32 SId      = 2; // ?
   uint32 TeamId   = 4;
   uint32 TeamName = 5;
-  int64 Power     = 6;
+  int64 Power     = 6;    //power
   int64 X         = 7;
   int64 Y         = 8;
   repeated BallData Balls = 9;
-  uint32 State    = 10;   // State:0=alive;1=jelly;2=death
+  uint32 State    = 10;   // State:1=alive;2=jelly;0=death
   uint32 StState  = 11;   // State time left
   int64 Combine   = 12;   // Rescue or Kill
   uint32 Speed    = 14;
-  uint32 LifeNum  = 15;
+  uint32 BombNum  = 15;
+
+
 }
 
 // Init data
@@ -312,7 +319,7 @@ message RetAddPlayers {
   uint32 TeamName = 5;
   uint32 X        = 6;
   uint32 Y        = 7;
-  uint32 LifeNum  = 8;
+  uint32 BombNum  = 8;
   uint32 Speed    = 9;
   uint32 Power    = 10;
   uint32 State   = 11;
@@ -336,7 +343,7 @@ message RetSetPlayerAttr{
     uint32 State      = 2;
     uint32 Power      = 3;
     uint32 Speed      = 4;
-    uint32 LifeNum    = 5;
+    uint32 BombNum    = 5;
   }
   repeated PlayerAttr Players = 1;
 }
@@ -373,9 +380,10 @@ message RetGUpdateMap {
 }
 
 enum UserState {
-  Alive = 0;
-  Jelly = 1;
-  Dead = 2;
+  Dead = 0;
+  Alive = 1;
+  Jelly = 2;
+
 }
 
 message RetUserStateSet{

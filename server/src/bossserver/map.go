@@ -1,5 +1,15 @@
 package main
 
+import "sync"
+
+type Map struct {
+	gamemap 	[][]int32
+	mapPool		[]map[uint32]interface{}
+	needMutex 	bool
+	mutexPool 	sync.RWMutex
+
+}
+
 func GenerateRandMap() *map[uint32]*Obstacle {
 	obstacle := make(map[uint32]*Obstacle)
 	for i := 0; i < 30; i++ {

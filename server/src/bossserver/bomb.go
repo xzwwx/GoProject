@@ -1,11 +1,15 @@
 package main
 
 type Bomb struct {
-	id
+	id uint32
 	player *ScenePlayer
 	layTime 	int64
-	pos 		Pos
+	pos 		Vector2
 	lastTime 	int64 	// duojiu zha
 	isdelete	bool 	// zha le ma
 	boxDistroiedList 	[]*Obstacle
+}
+
+func (this *Bomb) TimeAction(){
+
 }

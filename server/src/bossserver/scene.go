@@ -16,12 +16,18 @@ type Scene struct {
 	room 	*Room
 	Obstacle *map[uint32]*Obstacle
 
+	gameMap			Map
+	// Scene info
 	sceneWidth 		float64
 	sceneHeight 	float64
 	now 			time.Time
 	startTime 		time.Time
 	frame			uint32
+
 	ballID			uint32
+	pool 			*BallPool 	// Player Pool
+
+	msgBytes 		[]byte
 
 	// temple things
 	rangeBalls 		[]*Bomb //map
@@ -40,6 +46,10 @@ func NewScene(room *Room) *Scene {
 
 func (this *Scene) Init(){
 	this.Obstacle = GenerateRandMap()
+	// Init map
+	this.gameMap = Map{
+
+	}
 }
 
 func (this *Scene) AddPlayer (p *PlayerTask) {
@@ -48,7 +58,7 @@ func (this *Scene) AddPlayer (p *PlayerTask) {
 
 func (this *Scene) SendRoomMsg() {
 	for _, p := range this.players {
-		p.sendSceneMsg()
+		p.sendSceneMsg(this)
 	}
 }
 
@@ -65,6 +75,9 @@ func (this *Scene) UpdatePlayers(per float64)  {
 
 }
 
-func (this *Scene) SendRoomMsg() {
+// Check mapcell   0: null  1:wall  2:Obstacle
+func (this *Scene)GetCellState(x, y uint32) int32 {
 
+	return this.gameMap.gamemap[x][y]
 }
+

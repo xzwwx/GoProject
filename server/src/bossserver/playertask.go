@@ -165,7 +165,7 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 			return false
 		}
 
-		atomic.StoreInt32(&this.direction, revCmd.Way)
+		atomic.StoreInt32(&this.direction, revCmd.Direction)
 		atomic.StoreInt32(&this.speed, revCmd.Speed)
 		atomic.StoreInt32(&this.hasMove, 1)
 
@@ -269,6 +269,11 @@ func (this *PlayerTask) offline() {
 func (this *PlayerTask) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message){
 	//data = make([]byte, common.CmdHeaderSize + msg)
 	//this.
+}
+
+func (this *PlayerTask) AsyncSend(buffer []byte, flag byte) bool {
+
+	return this.tcptask.AsyncSend(buffer, flag)
 }
 
 

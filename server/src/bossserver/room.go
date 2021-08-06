@@ -12,7 +12,7 @@ type Room struct {
 	//mutex    sync.RWMutex
 	id          uint32                 //房间id
 	roomType    uint32                 //房间类型
-	players     map[uint32]*PlayerTask //房间内的玩家
+	//players     map[uint64]*PlayerTask //房间内的玩家
 	curNum      uint32                 //当前房间内玩家数
 	bombCount 	uint32
 	isStart     bool
@@ -22,9 +22,14 @@ type Room struct {
 	iscustom	bool
 	frame 		uint32
 
-	scene 		*Scene
-	opChan		chan *opMsg 	// player operation msg
-	chan_PlayerOp chan *PlayerOp
+	// Operation
+	scene 			*Scene
+	opChan			chan *opMsg 	// player operation msg
+	chan_PlayerOp 	chan *PlayerOp
+	chan_Control 	chan int
+	chan_AddPlayer 		chan *PlayerTask
+	chan_RemovePlayer 	chan *PlayerTask
+
 
 	newLogin 	map[uint64]bool
 	loginHis	map[uint64]bool
@@ -120,12 +125,13 @@ func (this *Room) Loop() {
 			if this.timeLoop % 5 == 0{
 				this.frame ++
 
-				this.sendRoomMsg()
+				this.SendRoomMsg()
 			}
 
 			//1s
 			if this.timeLoop % 100 == 0 {
-				this.scene.sendTime(this.totalTime - this.timeLoop/100)
+
+				//this.scene.sendTime(this.totalTime - this.timeLoop/100)
 			}
 			if this.timeLoop != 0 && this.timeLoop % (this.totalTime * 100) == 0 {
 				stop = true
@@ -135,8 +141,14 @@ func (this *Room) Loop() {
 			if this.isStop{
 				stop = true
 			}
-			case op := <-this.opChan:
-				this.scene.UpdateOP(op)
+			case op := <-this.chan_PlayerOp:
+				//this.scene.UpdateOP(op)
+				switch op.opType {
+				case PlayerLayBombOp:
+					this.LayBomb(op.playerId)
+				case PlayerMoveOp:
+
+				}
 		}
 	}
 	this.Close()
@@ -158,8 +170,32 @@ func(this *Room) Update(per float64) {
 
 	this.UpdatePlayers(per)
 	rtime := time.Now().Sub(starttime).Milliseconds()
-	if math.Abs(float(ftime - 40)) > 20 || rtime > 20 {
+	if math.Abs(float64(ftime - 40)) > 20 || rtime > 20 {
 		glog.Info("[Statistic] State sync.", this.roomType, ", ", this.id, ", ", this.frame, ", ", ftime, ", ", rtime)
 	}
+}
+
+func (this *Room) TimeAction() {
+
+}
+
+//Send cmd to room pthread
+func (this *Room) Control(ctrl int) bool {
+	if this.IsClosed() {
+		return false
+	}
+	this.chan_Control <- ctrl
+	return true
+
+}
+
+//Lay bomb
+func (this *Room) LayBomb(playerId uint64) {
+	player, ok := this.players[playerId]
+	if !ok {
+		return
+	}
+	player.LayBomb(this)
+
 }
 

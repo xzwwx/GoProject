@@ -73,9 +73,9 @@ type ReqKillMsg struct{
 
 
 //Get Cmd
-func GetCmd(buf []byte)uint16{
-	if len(buf) <CmdHeaderSize{
-		return 0
-	}
-	return uint16(buf[0])|uint16(buf[1])<<8
-}
+//func GetCmd(buf []byte)uint16{
+//	if len(buf) <CmdHeaderSize{
+//		return 0
+//	}
+//	return uint16(buf[0])|uint16(buf[1])<<8
+//}
