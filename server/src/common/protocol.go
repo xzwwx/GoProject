@@ -173,3 +173,15 @@ func DecodeGprotoCmd(buf []byte, flag byte, pb Message) (Message){
 	}
 	return pb
 }
+
+func EncodeToBytes (cmd uint16, msg Message) ([]byte, bool){
+	data := make([]byte, CmdHeaderSize + msg.Size())
+	_, err := msg.MarshalTo(data[CmdHeaderSize:])
+	if err != nil {
+		glog.ErrorDepth(1,"[Protocol] error.", cmd, ", ", err)
+		return nil, false
+	}
+	data[0] = byte(cmd)
+	data[1] = byte(cmd>>8)
+	return data, true
+}

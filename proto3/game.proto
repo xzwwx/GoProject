@@ -187,6 +187,7 @@ message MsgLayBomb {
   uint32 leftCount = 2;  // Bomb number rested
   uint32 x = 3;
   uint32 y = 4;
+  int64  layTime = 5;
 }
 
 /////////

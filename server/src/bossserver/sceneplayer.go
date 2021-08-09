@@ -2,6 +2,7 @@ package main
 
 import (
 	"common"
+	"glog"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -153,7 +154,7 @@ func (this *ScenePlayer) LayBomb (room *Room) {
 	)
 	if this.bombLeft > 0 {
 		cell := scene.GetCellState(this.pos.x, this.pos.y)
-		if cell == 0 {
+		if cell == 0 {	// ke fang zha dan
 			timenow := time.Now().Unix()
 			bomb := &Bomb{
 				pos: this.pos,
@@ -173,14 +174,20 @@ func (this *ScenePlayer) LayBomb (room *Room) {
 	}
 
 	if room != nil {
-		
+
 	}
 
 }
 
 // Player Send Cmd
 func (this * ScenePlayer) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message) bool {
-
+	data, ok := common.EncodeToBytes(uint16(cmd), msg)
+	if !ok {
+		glog.Info("[Player] Send cmd:", cmd, ", len:", (len(data)))
+		return false
+	}
+	this.AsyncSend(data, 0)
+	return true
 }
 
 
