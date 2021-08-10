@@ -21,7 +21,7 @@ enum CmdType{
   UpdateServer  = 21; // Update player number
   LoadCinfig    = 22;
   TJointRoom    = 32;
-  HeartBeat     = 37;    //------------------------------
+  HeartBeat1     = 37;    //------------------------------
 
   SubscribeSetRoom    = 301;
   SubscribeStartRoom  = 304;
