@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-type RoomMgr struct{
+type RoomMgr struct {
 	runmutex sync.RWMutex
 	runrooms map[uint32]*Room
 	endmutex sync.RWMutex
 	endrooms map[uint32]int64
-	endChan	chan uint32
-
+	endChan  chan uint32
 }
+
 var roommgr *RoomMgr
 
 func RoomMgr_GetMe() *RoomMgr {
@@ -33,7 +33,7 @@ func (this *RoomMgr) Init() {
 		mintick := time.NewTicker(time.Minute)
 		defer func() {
 			if err := recover(); err != nil {
-				glog.Error("[Exception] Error ", err, "\n", string(debug.Stack()) )
+				glog.Error("[Exception] Error ", err, "\n", string(debug.Stack()))
 			}
 			mintick.Stop()
 		}()
@@ -70,7 +70,7 @@ func (this *RoomMgr) IsEndRoom(roomid uint32) bool {
 }
 
 // Check endroom list
-func (this *RoomMgr) ChkEndRoomId(){
+func (this *RoomMgr) ChkEndRoomId() {
 	timenow := time.Now().Unix()
 	this.endmutex.Lock()
 	for roomid, endtime := range this.endrooms {
@@ -102,7 +102,7 @@ func (this *RoomMgr) RemoveRoom(room *Room) {
 	this.AddEndRoomId(room.id)
 	RCenterClient_GetMe().RemoveRoom(room.roomType, room.id, room.iscustom)
 	RCenterClient_GetMe().UpdateServer(this.getNum(), PlayerTaskMgr_GetMe().GetNum())
-	glog.Info("[Room] Remove Room[", room.roomType, ". ", room.id, )
+	glog.Info("[Room] Remove Room[", room.roomType, ". ", room.id)
 }
 
 func (this *RoomMgr) getNum() (roomnum int32) {
@@ -136,7 +136,7 @@ func (this *RoomMgr) GetRooms() (rooms []*Room) {
 }
 
 //Get room by id
-func (this * RoomMgr) getRoomById(rid uint32) *Room {
+func (this *RoomMgr) getRoomById(rid uint32) *Room {
 	this.runmutex.RLock()
 	room, ok := this.runrooms[rid]
 	if !ok {
@@ -147,9 +147,25 @@ func (this * RoomMgr) getRoomById(rid uint32) *Room {
 
 func (this *RoomMgr) AddPlayer(player *PlayerTask) bool {
 
+	room := this.getRoomById(player.udata.RoomId)
 
+	if this.IsEndRoom(player.udata.RoomId) {
+		glog.Error("[房间]已结束", player.udata.Id, ", ", player.udata.Account, ", ", player.udata.RoomId)
+		return false
+	}
+
+	if room == nil {
+		room = this.NewRoom(0, player.udata.RoomId, player)
+		if room == nil {
+			return false
+		}
+	}
+	glog.Info("[房间] 自由模式 ", room.id, ", ", player.udata.Id, ", ", player.udata.Account)
+
+	room.IncPlayerNum()
+
+	player.room = room
+	player.room.chan_AddPlayer <- player
 
 	return true
 }
-
-

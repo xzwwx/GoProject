@@ -2,6 +2,10 @@ syntax = "proto3";
 package usercmd;
 import "base_go.proto";
 
+// [START csharp_declaration]
+option csharp_namespace = "Protobuf.Game";
+// [END csharp_declaration]
+
 option go_package = "./;usercmd";
 
 enum MsgTypeCmd {
@@ -54,9 +58,7 @@ message HeartBeatInfo{
 message MsgLogin {
   string name = 1;
   string key = 2;
-  uint32 nameSkin = 3;
   bool IsUdp = 4;
-  uint32 BgMusic = 5;
   uint32 Ver = 6;
 }
 
@@ -108,10 +110,9 @@ message MsgBomb{
   int32 x             = 6;
   int32 y             = 7;
   bool isDelete        = 10;
-  uint32 DecayTime    = 12; //bomb time
+  uint32 createTime    = 12; //bomb time
 
 }
-
 
 // (Ball) Move message
 message BallMove{
@@ -120,6 +121,7 @@ message BallMove{
   int32 y       = 3;
   int32 nx      = 4;
   int32 ny      = 5;
+  uint32 direction = 6;
 }
 
 // Player data
@@ -152,23 +154,6 @@ message MsgMove{
   int32 speed = 2;  // = power
 }
 
-// UDP Login
-message MsgUdpLogin {
-  uint64 id = 1;
-}
-
-// UDP move request
-message MsgUdpMove {
-  uint64 id = 1;
-  uint32 power = 2; // direction and speed  : direction <<7 | speed
-}
-
-// UDP move
-message UdpBallMove {
-  uint32 id   = 1;
-  fixed64 pos = 2;  // : x<<48 | y << 32 | nx <<16 | ny
-}
-
 // Update Scene
 message MsgScene {
   repeated BallMove moves = 4;
@@ -188,6 +173,48 @@ message MsgLayBomb {
   uint32 x = 3;
   uint32 y = 4;
   int64  layTime = 5;
+}
+
+
+// 同步信息（玩家）
+message SyncPlayer {
+  uint64 Id       = 1;
+  uint32 SId      = 2; // ?
+  uint32 TeamId   = 4;
+  uint32 TeamName = 5;
+  int64 Power     = 6;    //power
+  int64 X         = 7;
+  int64 Y         = 8;
+  repeated BallData Balls = 9;
+  uint32 State    = 10;   // State:1=alive;2=jelly;0=death
+  uint32 StState  = 11;   // State time left
+  int64 Combine   = 12;   // Rescue or Kill
+  uint32 Speed    = 14;
+  uint32 BombNum  = 15;
+
+}
+
+//场景玩家信息
+message ScenePlayer {
+  uint64 id       = 1;
+  uint32 BombNum   = 2;
+  uint32 power     = 3;
+  uint32 speed     = 4;
+  uint32 state     = 5;   // 玩家状态 0:死亡 1：血量
+  float X         = 6;
+  float Y         = 7;
+  bool isMove     = 8;
+
+}
+
+//返回客户端场景更新信息
+message RetUpdateSceneMsg{
+  uint64 id     = 1;
+  float X       = 2;
+  float Y       = 3;
+  repeated ScenePlayer players = 4;
+  repeated MsgBomb bombs       = 5;
+
 }
 
 /////////
@@ -275,23 +302,11 @@ message BallData {
 
 }
 
-message SyncPlayer {
-  uint64 Id       = 1;
-  uint32 SId      = 2; // ?
-  uint32 TeamId   = 4;
-  uint32 TeamName = 5;
-  int64 Power     = 6;    //power
-  int64 X         = 7;
-  int64 Y         = 8;
-  repeated BallData Balls = 9;
-  uint32 State    = 10;   // State:1=alive;2=jelly;0=death
-  uint32 StState  = 11;   // State time left
-  int64 Combine   = 12;   // Rescue or Kill
-  uint32 Speed    = 14;
-  uint32 BombNum  = 15;
 
 
-}
+
+
+//////////////////////////////// 以下功能待定 /////////////////////////
 
 // Init data
 message RetInitSyncData {
@@ -352,6 +367,10 @@ message RetSetPlayerAttr{
 
 
 
+
+
+
+
 //////////////// Common///////////////////////
 message GamePlayer{
   uint64 Id       = 1;
@@ -394,3 +413,19 @@ message RetUserStateSet{
 
 
 
+// UDP Login
+message MsgUdpLogin {
+  uint64 id = 1;
+}
+
+// UDP move request
+message MsgUdpMove {
+  uint64 id = 1;
+  uint32 power = 2; // direction and speed  : direction <<7 | speed
+}
+
+// UDP move
+message UdpBallMove {
+  uint32 id   = 1;
+  fixed64 pos = 2;  // : x<<48 | y << 32 | nx <<16 | ny
+}

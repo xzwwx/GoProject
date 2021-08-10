@@ -4,10 +4,12 @@ import (
 	"base/env"
 	"base/gonet"
 	"flag"
+	"fmt"
 	"glog"
 	"math/rand"
 	"net/http"
 	"time"
+	"net"
 )
 
 const (
@@ -39,6 +41,7 @@ func (this *RoomServer) Init() bool {
 
 	//check
 	pprofport := env.Get("room", "port")
+	fmt.Println(pprofport)
 	if pprofport != "" {
 		go func() {
 			http.ListenAndServe(pprofport, nil)
@@ -61,9 +64,9 @@ func (this *RoomServer) Init() bool {
 
 
 	//
-	if !RCenterClient_GetMe().Connect(){
-		return false
-	}
+	//if !RCenterClient_GetMe().Connect(){
+		//return false
+	//}
 
 	glog.Info("[Start] Initialization successful, ", this.version)
 	return true
@@ -75,12 +78,34 @@ func (this *RoomServer) UdpLoop() {
 	//}
 }
 
+func ClientLogic(conn net.Conn) {
+
+    // 从客户端接受数据
+	buf := make([]byte,1024)
+
+		n, _ := conn.Read(buf)
+		//s, _ := bufio.NewReader(conn).Read(buf)
+		println("由客户端发来的消息：", n,", ",string(buf[:n]))
+
+		// 发送消息给客户端
+		//conn.Write([]byte("东东你好\n"))
+
+
+
+    // 关闭连接
+    //conn.Close()
+}
+
+
 func (this *RoomServer) MainLoop() {
+	fmt.Println("loop")
+
 	conn, err := this.roomser.Accept()
 	if err != nil {
 		return
 	}
-	NewPlayerTask(conn).Start()
+	go ClientLogic(conn)
+	//NewPlayerTask(conn).Start()
 }
 
 func (this *RoomServer) Final() bool {
@@ -125,7 +150,7 @@ func main() {
 	}
 
 	defer glog.Flush()
-
+	fmt.Println("logok")
 	RoomServer_GetMe().Main()
 
 	glog.Info("[Close] RoomServer closed.")

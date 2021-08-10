@@ -1,12 +1,12 @@
 package main
 
 import (
-"base/gonet"
+	"base/gonet"
+	"common"
 	"fmt"
 	"glog"
-"common"
-"net"
-"sync"
+	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 	"usercmd"
@@ -14,8 +14,8 @@ import (
 
 const (
 	Task_Max_Timeout = 1
-	OpsPerSecond = 3		// max lay bomb per second: zui duo mei miao fang 3 ge bombs
-	OpsNumPerSecond = 10 	// mei miao zui duo cao zuo 10 ci
+	OpsPerSecond     = 3  // max lay bomb per second: zui duo mei miao fang 3 ge bombs
+	OpsNumPerSecond  = 10 // mei miao zui duo cao zuo 10 ci
 )
 
 type PlayerTask struct {
@@ -23,56 +23,55 @@ type PlayerTask struct {
 	//udptask *snet.Session
 	isUdp bool
 
-	key string
-	id uint64
-	name string
-	room *Room
+	key   string
+	id    uint64
+	name  string
+	room  *Room
 	udata *common.UserData
 	uobjs []uint32
 
-	direction int32		// direction
-	power int32
-	speed int32			//Speed
-	lifenum uint32
-	state uint32
-	hasMove int32
+	direction int32 // direction
+	power     int32
+	speed     int32 //Speed
+	lifenum   uint32
+	state     uint32
+	hasMove   int32
 
-	lastLayBomb 	int32 	 	// last lay bomb times
-	lastLayBombTime int64 		// last .. time
+	lastLayBomb     int32 // last lay bomb times
+	lastLayBombTime int64 // last .. time
 
-	activeTime	time.Time
-	onlineTime	int64
-
+	activeTime time.Time
+	onlineTime int64
 }
 
 type PlayerOpType int
 
 const (
-	PlayerNoneOp 	= PlayerOpType(iota)
-	PlayerMoveOp
-	PlayerLayBombOp
+	PlayerNoneOp    = PlayerOpType(iota)
+	PlayerMoveOp    // 1: 移动
+	PlayerLayBombOp // 2: 放炸弹
 	PlayerCombineOp
 	PlayerEatObject
 )
 
 type PlayerOp_FrameSync struct {
-	player  	*PlayerTask
-	cmdParam	uint32
-	opType 		PlayerOpType
-	loginUsers	map[uint64]bool
-	toPlayerId	uint64
-	Opts 		*UserOpt
+	player     *PlayerTask
+	cmdParam   uint32
+	opType     PlayerOpType
+	loginUsers map[uint64]bool
+	toPlayerId uint64
+	Opts       *UserOpt
 }
 
 type PlayerOp struct {
-	playerId 	uint64
-	cmdParam 	uint32
-	opType 		PlayerOpType
-	loginUsers 	map[uint64]bool
-	toPlayerId 	uint64
+	playerId   uint64
+	cmdParam   uint32
+	opType     PlayerOpType
+	loginUsers map[uint64]bool
+	toPlayerId uint64
 }
 
-func NewPlayerTask(conn net.Conn) *PlayerTask{
+func NewPlayerTask(conn net.Conn) *PlayerTask {
 	s := &PlayerTask{
 		tcptask:    gonet.NewTcpTask(conn),
 		activeTime: time.Now(),
@@ -85,7 +84,7 @@ func NewPlayerTask(conn net.Conn) *PlayerTask{
 
 func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 	this.activeTime = time.Now()
-	if len(data) < 2{
+	if len(data) < 2 {
 		return true
 	}
 	cmd := usercmd.MsgTypeCmd(common.GetCmd(data))
@@ -105,7 +104,7 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 
 		//Check Key
 		var newLogin bool = true
-		if s := ScenePlayerMgr_GetMe().GetPlayer(revCmd.Key); s!= nil {
+		if s := ScenePlayerMgr_GetMe().GetPlayer(revCmd.Key); s != nil {
 			this.udata = s.udata
 			newLogin = false
 		}
@@ -129,7 +128,7 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 			}
 		}
 
-		glog.Info("[Login] Verified account success. ", this.RemoteAddr(), ", ", this.udata.Id, ", ", this.udata.Account,", ", this.key)
+		glog.Info("[Login] Verified account success. ", this.RemoteAddr(), ", ", this.udata.Id, ", ", this.udata.Account, ", ", this.key)
 
 		//var joinroomtype uint32
 
@@ -141,8 +140,8 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 
 		this.online()
 
-		glog.Info("[Login] Success,", this.RemoteAddr(), ", ", this.udata.RoomAddr, ", ", this.udata.RoomId,", ",
-			this.udata.Id, ", ", this.udata.Account,", ", this.key)
+		glog.Info("[Login] Success,", this.RemoteAddr(), ", ", this.udata.RoomAddr, ", ", this.udata.RoomId, ", ",
+			this.udata.Id, ", ", this.udata.Account, ", ", this.key)
 		return true
 	}
 
@@ -156,7 +155,6 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 		return false
 	}
 
-
 	switch cmd {
 	case usercmd.MsgTypeCmd_Move:
 		// Player move
@@ -169,19 +167,19 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 		atomic.StoreInt32(&this.speed, revCmd.Speed)
 		atomic.StoreInt32(&this.hasMove, 1)
 
-		fmt.Println("Move++",this.id)
+		fmt.Println("Move++", this.id)
 
 	case usercmd.MsgTypeCmd_LayBomb:
 		// Lay bombs
 		timenow := time.Now().Unix()
 		if this.lastLayBombTime <= timenow {
-			if this.lastLayBomb >= OpsNumPerSecond{
+			if this.lastLayBomb >= OpsNumPerSecond {
 				glog.Error("[Lay Bomb] Too fast. ", this.udata.RoomId, ", ", this.udata.Id, ", ", this.udata.Account, ", ", this.lastLayBomb)
 			}
 			this.lastLayBombTime = timenow + 1
 			this.lastLayBomb = 0
 		}
-		this.lastLayBomb ++
+		this.lastLayBomb++
 		if this.lastLayBomb > OpsPerSecond {
 			return true
 		}
@@ -206,7 +204,7 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 	return true
 }
 
-func (this * PlayerTask) Verify() {
+func (this *PlayerTask) Verify() {
 	this.tcptask.Verify()
 }
 func (this *PlayerTask) IsVerified() bool {
@@ -226,7 +224,7 @@ func (this *PlayerTask) RemoteAddr() string {
 	return this.tcptask.RemoteAddr()
 }
 
-func (this *PlayerTask) Start(){
+func (this *PlayerTask) Start() {
 	if !this.isUdp {
 		this.tcptask.Start()
 	}
@@ -235,7 +233,7 @@ func (this *PlayerTask) Start(){
 func (this *PlayerTask) Stop() bool {
 	if this.isUdp {
 		return true
-	}else{
+	} else {
 		this.tcptask.Close()
 	}
 	return true
@@ -251,7 +249,6 @@ func (this *PlayerTask) online() {
 
 		// RCenterClient_GetMe().UpdateRoom()
 
-
 		go func() {
 			//deng lu li shi
 			room.AddLoginUser(this.id)
@@ -266,7 +263,7 @@ func (this *PlayerTask) offline() {
 
 }
 
-func (this *PlayerTask) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message){
+func (this *PlayerTask) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message) {
 	//data = make([]byte, common.CmdHeaderSize + msg)
 	//this.
 }
@@ -275,10 +272,6 @@ func (this *PlayerTask) AsyncSend(buffer []byte, flag byte) bool {
 
 	return this.tcptask.AsyncSend(buffer, flag)
 }
-
-
-
-
 
 //////////////////PlayerTask Manager//////////
 type PlayerTaskMgr struct {
@@ -299,8 +292,7 @@ func PlayerTaskMgr_GetMe() *PlayerTaskMgr {
 }
 
 // Depose player timeout
-func (this *PlayerTaskMgr) timeAction(){
-
+func (this *PlayerTaskMgr) timeAction() {
 
 }
 
