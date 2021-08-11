@@ -1,6 +1,6 @@
 syntax = "proto3";
 package usercmd;
-import "base_go.proto";
+//import "base_go.proto";
 
 // [START csharp_declaration]
 option csharp_namespace = "Protobuf.Game";
@@ -28,6 +28,9 @@ enum MsgTypeCmd {
   Combine       = 25;   // Kill or help
 
   ErrorMsg      = 23;
+
+  PlayerState   = 72;
+  RetWallState  = 73;
 
 
   SceneSync     = 100;
@@ -114,14 +117,15 @@ message MsgBomb{
 
 }
 
-// (Ball) Move message
-message BallMove{
+//  Move message
+message MsgPlayerMove{
   uint64 id     = 1;
   int32 x       = 2;
   int32 y       = 3;
   int32 nx      = 4;
   int32 ny      = 5;
   uint32 direction = 6;
+  uint32 speed  = 7;
 }
 
 // Player data
@@ -148,22 +152,19 @@ message MsgRemovePlayer{
   uint64 id = 1;
 }
 
-// Move request
-message MsgMove{
-  int32 direction = 1;    // direction
-  int32 speed = 2;  // = power
-}
 
 // Update Scene
 message MsgScene {
-  repeated BallMove moves = 4;
+  repeated MsgPlayerMove moves = 4;
 
   uint32 frame = 6;
 }
 
-// UDP move msg
-message MsgSceneUdpMove {
-  repeated UdpBallMove balls = 1;
+
+// Move request
+message MsgMove{
+  int32 direction = 1;    // direction
+  int32 speed = 2;  // 
 }
 
 // Lay Bomb request
@@ -207,6 +208,45 @@ message ScenePlayer {
 
 }
 
+// 地图
+message MapGridData {
+  int32 x       = 1;
+  int32 y       = 2;
+  bool isBoom   = 3;
+  bool isWall   = 4;
+  bool isCanDestroyWall = 5;
+}
+
+message Map {
+  repeated MapGridData MapGrid  = 1;
+}
+
+enum CellType{
+  Space = 0;
+  Wall = 1;
+  Bomb = 2;
+  Box  = 3;
+  Object = 4;
+}
+
+message MapVector {
+  message Row {
+    repeated CellType x = 1;
+  }
+  repeated Row Col = 1;
+}
+
+// 返回地图状态
+message RetMapState {
+  message CellState {
+    int32 x = 1;
+    int32 y = 2;
+    CellType state = 3;
+  }
+repeated CellState cs = 1;
+
+}
+
 //返回客户端场景更新信息
 message RetUpdateSceneMsg{
   uint64 id     = 1;
@@ -215,6 +255,18 @@ message RetUpdateSceneMsg{
   repeated ScenePlayer players = 4;
   repeated MsgBomb bombs       = 5;
 
+}
+
+enum UserState {
+  Dead = 0;
+  Alive = 1;
+  Jelly = 2;
+
+}
+
+message RetPlayerState{
+  uint64 UserId = 1;
+  int32 UserState = 2;
 }
 
 /////////
@@ -399,20 +451,9 @@ message RetGUpdateMap {
   repeated GCell GCells  = 1; // tu ya
 }
 
-enum UserState {
-  Dead = 0;
-  Alive = 1;
-  Jelly = 2;
-
-}
-
-message RetUserStateSet{
-  uint64 UserId = 1;
-  uint32 State = 2;
-}
 
 
-
+//-----------UDP Msg------------
 // UDP Login
 message MsgUdpLogin {
   uint64 id = 1;
@@ -428,4 +469,9 @@ message MsgUdpMove {
 message UdpBallMove {
   uint32 id   = 1;
   fixed64 pos = 2;  // : x<<48 | y << 32 | nx <<16 | ny
+}
+
+// UDP move msg
+message MsgSceneUdpMove {
+  repeated UdpBallMove balls = 1;
 }

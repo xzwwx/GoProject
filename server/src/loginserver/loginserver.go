@@ -8,24 +8,20 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/go-redis/redis"
-	"math/rand"
-
-	//"base/env"
 	"glog"
 	"io"
-	//"math/rand"
+	"math/rand"
 	"net/http"
-	//"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-redis/redis"
 )
 
 type LoginServer struct {
 	gonet.Service
 
-
-	ServerId	uint32
+	ServerId uint32
 	//rpcserver 	*rpc.
 	//rpcserver 	*grpc.RpcServer
 }
@@ -42,10 +38,8 @@ func LoginServer_GetMe() *LoginServer {
 	return serverm
 }
 
-
 ////////////
 func (this *LoginServer) Init() bool {
-
 
 	// Start RPC
 	HandleLogic := new(RPCLogicTask)
@@ -78,31 +72,28 @@ func (this *LoginServer) Init() bool {
 
 }
 
-func (this *LoginServer) MainLoop(){
+func (this *LoginServer) MainLoop() {
 	time.Sleep(time.Second)
 }
 
 func (this *LoginServer) Final() bool {
 
-
-
 	return true
 }
 
-func (this *LoginServer) Reload(){
+func (this *LoginServer) Reload() {
 
 }
 
-
 var (
-	logfile = flag.String("logfile", "","Log file name")
-	config = flag.String("config", "config.json","config path")
+	logfile = flag.String("logfile", "", "Log file name")
+	config  = flag.String("config", "config.json", "config path")
 )
 
 func main() {
 	flag.Parse()
 
-	if !env.Load(*config){
+	if !env.Load(*config) {
 		return
 	}
 
@@ -118,10 +109,10 @@ func main() {
 	//
 	rand.Seed(time.Now().Unix())
 
-	if *logfile != ""{
+	if *logfile != "" {
 		glog.SetLogFile(*logfile)
-	}else{
-		glog.SetLogFile(env.Get("logic","log"))
+	} else {
+		glog.SetLogFile(env.Get("logic", "log"))
 	}
 
 	defer glog.Flush()
@@ -131,21 +122,17 @@ func main() {
 	glog.Info("[Close] Login Server closed.")
 }
 
-
-
-
-
 //////////////////////////////////////////////////
-type User struct{
-	userName string
-	userEmail string
+type User struct {
+	userName   string
+	userEmail  string
 	userPasswd string
-	userTel string
-	userKey string
-	isNew bool
+	userTel    string
+	userKey    string
+	isNew      bool
 }
 
-func password_md5(password, salt string)string{
+func password_md5(password, salt string) string {
 	h := md5.New()
 	h.Write([]byte(salt + password))
 	return fmt.Sprintf("%x", h.Sum(nil))
@@ -159,49 +146,49 @@ func createClient() *redis.Client {
 		PoolSize: 100,
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// 通过 cient.Ping() 来检查是否成功连接到了 redis 服务器
 	_, err := client.Ping(ctx).Result()
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 
 	return client
 }
 
-func userLogin(client *redis.Client, userName , email, password, salt string)(isLogin, getName string){
+func userLogin(client *redis.Client, userName, email, password, salt string) (isLogin, getName string) {
 	ctx := context.Background()
-	if userName != ""{
+	if userName != "" {
 
 		uidKey, err := client.Get(ctx, "userName:"+strings.ToLower(strings.TrimSpace(userName))).Result()
-		if err == redis.Nil{
+		if err == redis.Nil {
 			return "userName does not exist", "00000000"
 		}
 
 		getpwd, err := client.HGet(ctx, uidKey, "password").Result()
-		if err != nil{
+		if err != nil {
 			panic(err)
 		}
 
-		if getpwd == password_md5(password, salt){
+		if getpwd == password_md5(password, salt) {
 			return "login sucessfully", userName
 		}
 
-	}else if email != ""{
+	} else if email != "" {
 		uidKey, err := client.Get(ctx, "email:"+email).Result()
-		if err == redis.Nil{
+		if err == redis.Nil {
 			return "email does not exist", "00000000"
 		}
 
 		getpwd, err := client.HGet(ctx, uidKey, "password").Result()
-		if err != nil{
+		if err != nil {
 			panic(err)
 		}
 
-		if getpwd == password_md5(password, salt){
+		if getpwd == password_md5(password, salt) {
 			userName, err = client.HGet(ctx, uidKey, "userName").Result()
-			if err != nil{
+			if err != nil {
 				panic(err)
 			}
 			return "login sucessfully", userName
@@ -212,16 +199,16 @@ func userLogin(client *redis.Client, userName , email, password, salt string)(is
 }
 
 // login POST
-func login(w http.ResponseWriter, r *http.Request){
+func login(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Printf("read request.Body failed, err:%v\n", err)
 		return
 	}
-	data:= make(map[string]string)
+	data := make(map[string]string)
 	err = json.Unmarshal([]byte(body), &data)
-	if err !=nil {
+	if err != nil {
 		fmt.Println("body To Json failed, err:", err)
 		panic("Error")
 	}
@@ -246,6 +233,7 @@ func login(w http.ResponseWriter, r *http.Request){
 	w.Write([]byte(answer))
 
 }
+
 //
 //func main2(){
 //	//client := createClient()

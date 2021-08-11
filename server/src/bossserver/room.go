@@ -1,11 +1,13 @@
 package main
 
 import (
+	"common"
 	"glog"
 	"math"
 	"sync"
 	"sync/atomic"
 	"time"
+	"usercmd"
 )
 
 type Room struct {
@@ -25,6 +27,9 @@ type Room struct {
 	isclosed  int32
 
 	rmode RoomMode
+
+	// 处理炸弹
+	bombmgr *BombMgr
 
 	// Operation
 	scene             *Scene
@@ -75,8 +80,11 @@ func (this *Room) Start() bool {
 	}
 	this.rmode = NewFreeRoom(this)
 
+	this.bombmgr = NewBombMgr(this)
 	this.Scene.Init(this)
 
+	go this.Loop()
+	glog.Info("[房间] 创建房间 ", ", ", this.id, ", ")
 	return true
 }
 
@@ -153,6 +161,7 @@ func (this *Room) Loop() {
 				this.frame++
 
 				this.SendRoomMsg()
+				this.bombmgr.ExecAction()
 			}
 
 			//1s
@@ -172,7 +181,7 @@ func (this *Room) Loop() {
 			//this.scene.UpdateOP(op)
 			switch op.opType {
 			case PlayerLayBombOp:
-				this.LayBomb(op.playerId)
+				this.LayBomb(op.playerId, op.x, op.y)
 			case PlayerMoveOp:
 
 			}
@@ -204,6 +213,18 @@ func (this *Room) Update(per float64) {
 	}
 }
 
+//广播消息
+func (this *Room) BroadcastMsg(msgNo usercmd.MsgTypeCmd, msg common.Message) {
+	data, ok := common.EncodeToBytes(uint16(msgNo), msg)
+	if !ok {
+		glog.Error("[广播] 发送消息失败 ", msgNo)
+		return
+	}
+	for _, player := range this.Scene.players {
+		player.AsyncSend(data, 0)
+	}
+}
+
 func (this *Room) TimeAction() {
 
 }
@@ -219,11 +240,11 @@ func (this *Room) Control(ctrl int) bool {
 }
 
 //Lay bomb
-func (this *Room) LayBomb(playerId uint64) {
+func (this *Room) LayBomb(playerId uint64, x, y int32) {
 	player, ok := this.players[playerId]
 	if !ok {
 		return
 	}
-	player.LayBomb(this)
+	player.LayBomb(this, x, y)
 
 }
