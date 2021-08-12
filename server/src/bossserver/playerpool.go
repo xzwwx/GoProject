@@ -6,7 +6,9 @@ import (
 
 //player pool
 type BallPool struct {
-	moveFree  []*usercmd.MsgPlayerMove
-	msgPlayer []*usercmd.MsgPlayer
-	msgScene  usercmd.MsgScene
+	moveFree          []*usercmd.MsgPlayerMove
+	msgPlayer         []*usercmd.ScenePlayer
+	msgScene          usercmd.MsgScene
+	msgBomb           []*usercmd.MsgBomb
+	RetUpdateSceneMsg *usercmd.RetUpdateSceneMsg
 }

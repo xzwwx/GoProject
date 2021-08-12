@@ -9,7 +9,7 @@ func msgSceneToBytes(cmd uint16, msg *usercmd.MsgScene, buf []byte) int {
 	var pos = 0
 	//var ismove bool
 	buf[0] = byte(cmd)
-	buf[1] = byte(cmd>>8)
+	buf[1] = byte(cmd >> 8)
 	pos = 2
 	pos = PutUvarint(buf, pos, msg.Frame)
 
@@ -21,17 +21,46 @@ func msgSceneToBytes(cmd uint16, msg *usercmd.MsgScene, buf []byte) int {
 			pos = PutInt16(buf, pos, int16(player.Y))
 			pos = PutInt16(buf, pos, int16(player.Nx))
 			pos = PutInt16(buf, pos, int16(player.Ny))
-
 		}
-	}else{
+	} else {
 		buf[pos] = 0
-		pos ++
+		pos++
+	}
+	// = =
+	if len(msg.Bombs) > 0 {
+		pos = PutUvarint(buf, pos, uint32(len(msg.Bombs)))
+		for _, bomb := range msg.Bombs {
+			pos = PutInt16(buf, pos, int16(bomb.X))
+			pos = PutInt16(buf, pos, int16(bomb.Y))
+			pos = PutInt16(buf, pos, int16(bomb.IsDelete))
+			pos = PutInt16(buf, pos, int16(bomb.Power))
+		}
+	} else {
+		buf[pos] = 0
+		pos++
+	}
+	// = = = =
+	if len(msg.Players) > 0 {
+		pos = PutUvarint(buf, pos, uint32(len(msg.Players)))
+		for _, player := range msg.Players {
+			pos = PutUvarint64(buf, pos, player.Id)
+			pos = PutInt16(buf, pos, int16(player.BombNum))
+			pos = PutInt16(buf, pos, int16(player.Power))
+			pos = PutInt16(buf, pos, int16(player.Speed))
+			pos = PutInt16(buf, pos, int16(player.State))
+			pos = PutInt16(buf, pos, int16(player.X))
+			pos = PutInt16(buf, pos, int16(player.Y))
+			pos = PutInt16(buf, pos, int16(1))
+		}
+	} else {
+		buf[pos] = 0
+		pos++
 	}
 	return pos
 }
 
 func PutInt16(b []byte, i int, v int16) int {
-	b[i] = byte(v>>8)
+	b[i] = byte(v >> 8)
 	b[i+1] = byte(v)
 	return i + 2
 }
@@ -56,4 +85,3 @@ func PutUvarint64(buf []byte, i int, x uint64) int {
 	buf[i] = byte(x)
 	return i + 1
 }
-

@@ -2,6 +2,11 @@
   "global": {
 
   },
+  "redis":{
+    "server":"192.168.96.103:6379",
+    "password":"123456",
+    "db":"1"
+},
   "logic": {
     "listen": ":8090",
     "db": "127.0.0.1:6379",
@@ -17,6 +22,22 @@
   "room": {
     "port": ":9091",
     "listen": ":9091",
+    "grpc": ":10086",
+    "log": "./log/Log_room1.log",
+    "time": "600",
+    "rcenter": ":9090"
+  },
+  "room2": {
+    "port": ":9092",
+    "listen": ":9092",
+    "grpc": ":10086",
+    "log": "./log/Log_room1.log",
+    "time": "600",
+    "rcenter": ":9090"
+  },
+  "room3": {
+    "port": ":9093",
+    "listen": ":9093",
     "grpc": ":10086",
     "log": "./log/Log_room1.log",
     "time": "600",

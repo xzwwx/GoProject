@@ -14,9 +14,10 @@ const (
 	MaxCmdSize      = 2
 )
 
-var(
+var (
 	ShortMsgError = errors.New("[Protocol] Too short")
 )
+
 type Message interface {
 	Marshal() (data []byte, err error)
 	MarshalTo(data []byte) (n int, err error)
@@ -104,30 +105,30 @@ func DecodeCmd(buf []byte, flag byte, pb Message) Message {
 	return pb
 }
 
-func EncodeGoCmd(cmd int16, msg Message)(data []byte, flag byte, err error) {
+func EncodeGoCmd(cmd int16, msg Message) (data []byte, flag byte, err error) {
 	msglen := msg.Size()
 	if msglen >= MaxCompressSize {
 		flag = 1
 		data, err = msg.Marshal()
 		if err != nil {
-			glog.ErrorDepth(1,"[Protocol] Encode error.", cmd, ", ", err)
+			glog.ErrorDepth(1, "[Protocol] Encode error.", cmd, ", ", err)
 			return
 		}
 		mbuff := zlibCompress(data)
-		data = make([]byte, CmdHeaderSize + len(mbuff))
+		data = make([]byte, CmdHeaderSize+len(mbuff))
 		data[0] = byte(cmd)
-		data[1] = byte(cmd>>8)
+		data[1] = byte(cmd >> 8)
 		copy(data[CmdHeaderSize:], mbuff)
 		return
 	}
-	data = make([]byte, CmdHeaderSize + msglen)
+	data = make([]byte, CmdHeaderSize+msglen)
 	_, err = msg.MarshalTo(data[CmdHeaderSize:])
 	if err != nil {
 		glog.ErrorDepth(1, "[Protocol] Encode error.", err)
 		return nil, 0, err
 	}
 	data[0] = byte(cmd)
-	data[1] = byte(cmd>>8)
+	data[1] = byte(cmd >> 8)
 	return
 }
 
@@ -145,21 +146,20 @@ func DecodeGoMsg(buf []byte, flag byte, pb Message) (err error) {
 	return
 }
 
-func DecodeGoCmd(buf []byte, flag byte, pb Message) (err error){
+func DecodeGoCmd(buf []byte, flag byte, pb Message) (err error) {
 	if len(buf) < CmdHeaderSize {
 		err = ShortMsgError
-		glog.ErrorDepth(1,err.Error())
+		glog.ErrorDepth(1, err.Error())
 		return
 	}
 	err = DecodeGoMsg(buf[CmdHeaderSize:], flag, pb)
 	return
 }
 
-
-func DecodeGprotoCmd(buf []byte, flag byte, pb Message) (Message){
+func DecodeGprotoCmd(buf []byte, flag byte, pb Message) Message {
 	if len(buf) < CmdHeaderSize {
 		err := ShortMsgError
-		glog.ErrorDepth(1,err.Error())
+		glog.ErrorDepth(1, err.Error())
 		return nil
 	}
 	var mbuff []byte
@@ -168,20 +168,20 @@ func DecodeGprotoCmd(buf []byte, flag byte, pb Message) (Message){
 	}
 	err := pb.Unmarshal(mbuff)
 	if err != nil {
-		glog.ErrorDepth(1,"[Protocol] Generate protobuf error. ", GetCmd(buf), ", ", err)
+		glog.ErrorDepth(1, "[Protocol] Generate protobuf error. ", GetCmd(buf), ", ", err)
 		return nil
 	}
 	return pb
 }
 
-func EncodeToBytes (cmd uint16, msg Message) ([]byte, bool){
-	data := make([]byte, CmdHeaderSize + msg.Size())
+func EncodeToBytes(cmd uint16, msg Message) ([]byte, bool) {
+	data := make([]byte, CmdHeaderSize+msg.Size())
 	_, err := msg.MarshalTo(data[CmdHeaderSize:])
 	if err != nil {
-		glog.ErrorDepth(1,"[Protocol] error.", cmd, ", ", err)
+		glog.ErrorDepth(1, "[Protocol] error.", cmd, ", ", err)
 		return nil, false
 	}
 	data[0] = byte(cmd)
-	data[1] = byte(cmd>>8)
+	data[1] = byte(cmd >> 8)
 	return data, true
 }

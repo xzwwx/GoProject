@@ -185,6 +185,8 @@ func (this *Room) Loop() {
 			case PlayerMoveOp:
 
 			}
+		case player := <-this.chan_AddPlayer:
+			this.AddPlayer(player)
 		}
 
 	}

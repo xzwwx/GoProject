@@ -3,29 +3,30 @@ package main
 import (
 	"base/env"
 	"base/gonet"
+	"common"
 	"flag"
 	"fmt"
 	"glog"
 	"math/rand"
+	"net"
 	"net/http"
 	"time"
-	"net"
 )
 
 const (
 	TokenRedis int = iota
 )
 
-type RoomServer struct{
+type RoomServer struct {
 	gonet.Service
-	roomser 	*gonet.TcpServer
+	roomser *gonet.TcpServer
 	//roomserUdp 	*snet.Server
 	version uint32
 }
 
 var serverm *RoomServer
 
-func RoomServer_GetMe() *RoomServer{
+func RoomServer_GetMe() *RoomServer {
 	if serverm == nil {
 		serverm = &RoomServer{
 			roomser: &gonet.TcpServer{},
@@ -48,12 +49,15 @@ func (this *RoomServer) Init() bool {
 		}()
 	}
 
+	if !common.RedisMgr.NewRedisManager() {
+		glog.Errorln("[LogicServer Init] Init error")
+		return false
+	}
 	//Global config
 	//if()
 
 	//Redis
 	//To do
-
 
 	// Binding Local Port
 	err := this.roomser.Bind(env.Get("room", "listen"))
@@ -62,10 +66,9 @@ func (this *RoomServer) Init() bool {
 		return false
 	}
 
-
 	//
 	//if !RCenterClient_GetMe().Connect(){
-		//return false
+	//return false
 	//}
 
 	glog.Info("[Start] Initialization successful, ", this.version)
@@ -80,22 +83,19 @@ func (this *RoomServer) UdpLoop() {
 
 func ClientLogic(conn net.Conn) {
 
-    // 从客户端接受数据
-	buf := make([]byte,1024)
+	// 从客户端接受数据
+	buf := make([]byte, 1024)
 
-		n, _ := conn.Read(buf)
-		//s, _ := bufio.NewReader(conn).Read(buf)
-		println("由客户端发来的消息：", n,", ",string(buf[:n]))
+	n, _ := conn.Read(buf)
+	//s, _ := bufio.NewReader(conn).Read(buf)
+	println("由客户端发来的消息：", n, ", ", string(buf[:n]))
 
-		// 发送消息给客户端
-		//conn.Write([]byte("东东你好\n"))
+	// 发送消息给客户端
+	//conn.Write([]byte("东东你好\n"))
 
-
-
-    // 关闭连接
-    //conn.Close()
+	// 关闭连接
+	//conn.Close()
 }
-
 
 func (this *RoomServer) MainLoop() {
 	fmt.Println("loop")
@@ -104,13 +104,12 @@ func (this *RoomServer) MainLoop() {
 	if err != nil {
 		return
 	}
-	go ClientLogic(conn)
-	//NewPlayerTask(conn).Start()
+	// go ClientLogic(conn)
+	NewPlayerTask(conn).Start()
 }
 
 func (this *RoomServer) Final() bool {
 	this.roomser.Close()
-
 
 	return true
 }
@@ -120,14 +119,14 @@ func (this *RoomServer) Reload() {
 }
 
 var (
-	logfile = flag.String("logfile", "","Log file name")
-	config = flag.String("config", "config.json","config path")
+	logfile = flag.String("logfile", "", "Log file name")
+	config  = flag.String("config", "config.json", "config path")
 )
 
 func main() {
 	flag.Parse()
 
-	if !env.Load(*config){
+	if !env.Load(*config) {
 		return
 	}
 
@@ -143,10 +142,10 @@ func main() {
 
 	rand.Seed(time.Now().Unix())
 
-	if *logfile != ""{
+	if *logfile != "" {
 		glog.SetLogFile(*logfile)
-	}else{
-		glog.SetLogFile(env.Get("room","log"))
+	} else {
+		glog.SetLogFile(env.Get("room", "log"))
 	}
 
 	defer glog.Flush()

@@ -18,7 +18,7 @@ type Bomb struct {
 	pos              VectorInt
 	power            int32
 	lastTime         int64 // 爆炸时间
-	isdelete         bool  // zha le ma
+	isdelete         int32 // zha le ma
 	boxDistroiedList []*RetMapCellState
 }
 
@@ -29,7 +29,7 @@ func (this *Bomb) Init(room *Room) bool {
 	this.pos.Y = int32(this.player.pos.y)
 	this.power = this.player.self.power
 	room.rangeBalls = append(room.rangeBalls, this)
-	this.isdelete = false
+	this.isdelete = 0
 
 	return true
 }

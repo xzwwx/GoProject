@@ -18,7 +18,7 @@ enum MsgTypeCmd {
   LayBomb       = 7;     // = Break
   Death         = 10;    // Player dead
   EndRoom       = 11;
-  NewScene      = 13;   // Create scene
+  NewScene      = 13;   // Create scene 更新地图
   ReSetNet      = 15;
   HeartBeat     = 16;    //++++++++++++++
   BeBomb        = 21;    // = BeBreak
@@ -31,9 +31,11 @@ enum MsgTypeCmd {
 
   PlayerState   = 72;
   RetWallState  = 73;
+  RetUpdateScene = 77;
 
+  SendMap       = 75;
 
-  SceneSync     = 100;
+  SceneSync     = 100;  // 场景同步
   InitSyncData  = 101;
   AddPlayers    = 102;
   AddBalls      = 104;
@@ -112,9 +114,9 @@ message MsgBomb{
   uint64 own          = 3;
   int32 x             = 6;
   int32 y             = 7;
-  bool isDelete        = 10;
+  int32 isDelete        = 10;
   uint32 createTime    = 12; //bomb time
-
+  int32 power         = 13;
 }
 
 //  Move message
@@ -153,13 +155,17 @@ message MsgRemovePlayer{
 }
 
 
-// Update Scene
+// Update Scene 更新场景中的玩家和炸弹  --------------------
 message MsgScene {
-  repeated MsgPlayerMove moves = 4;
-
+  uint64 id     = 1;
+  float X       = 2;
+  float Y       = 3;
   uint32 frame = 6;
-}
-
+  repeated MsgPlayerMove moves = 7;
+  repeated ScenePlayer players = 4;
+  repeated MsgBomb bombs       = 5;
+ } 
+//-------------------------------------------------
 
 // Move request
 message MsgMove{
@@ -231,9 +237,9 @@ enum CellType{
 
 message MapVector {
   message Row {
-    repeated CellType x = 1;
+    repeated CellType y = 1;
   }
-  repeated Row Col = 1;
+  repeated Row x = 1;
 }
 
 // 返回地图状态
@@ -254,7 +260,6 @@ message RetUpdateSceneMsg{
   float Y       = 3;
   repeated ScenePlayer players = 4;
   repeated MsgBomb bombs       = 5;
-
 }
 
 enum UserState {

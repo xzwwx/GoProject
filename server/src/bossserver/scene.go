@@ -59,7 +59,7 @@ func (this *Scene) Init(room *Room) {
 
 	this.startTime = time.Now()
 
-	this.Obstacle = GenerateRandMap()
+	// this.Obstacle = GenerateRandMap()
 
 	// 加载地图
 	this.gameMap = &Map{} // 50x50

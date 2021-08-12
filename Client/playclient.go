@@ -8,19 +8,18 @@ import (
 	"strings"
 )
 
-func main(){
+func main2() {
 	url := "http://127.0.0.1:8090/game"
 
 	//json
 	contentType := "application/json"
 
-	data :=map[string]interface{}{
-		"uid" : "10086",
-		"username":"xzw",
+	data := map[string]interface{}{
+		"uid":      "10086",
+		"username": "xzw",
 	}
 
 	//`{"uid":"10086", "username":"xzw"}`
-
 
 	j, err := json.Marshal(data)
 	if err != nil {
@@ -31,8 +30,7 @@ func main(){
 	res, err2 := http.Post(url, contentType, strings.NewReader(string(j)))
 	fmt.Println("+++++++++++post ok")
 
-
-	if err2 != nil{
+	if err2 != nil {
 		fmt.Printf("Post failed, err: %v \n", err2)
 		return
 	}

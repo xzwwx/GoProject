@@ -111,10 +111,31 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 			this.udata = s.udata
 			newLogin = false
 		}
+		if this.udata == nil {
+			// udata := &common.UserData{}
+			token := common.RedisMgr.Get(revCmd.Name + "_token")
+			if token == "" {
+				glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", revCmd.Key)
+				return false
+			}
+			udata, err := common.ParseRoomToken(token)
+			if err == nil {
+				glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", revCmd.Key)
+				return false
+			}
+			this.udata.Id = uint64(udata.UserId)
+			this.udata.Account = udata.UserName
+			this.udata.RoomId = udata.RoomId
+
+			// if !RedisMgr_GetMe().LoadFromRedis(revCmd.Key, udata){
+			// 	glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", revCmd.Key)
+			// 	return false
+			// }
+		}
 
 		this.key = revCmd.Key
 		this.id = this.udata.Id
-		this.name = string("player")
+		this.name = this.udata.Account
 
 		otask := PlayerTaskMgr_GetMe().GetTask(this.id)
 		if otask != nil {
@@ -192,6 +213,10 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 			return true
 		}
 		revCmd := &usercmd.MsgLayBomb{}
+		if common.DecodeGoCmd(data, flag, revCmd) != nil {
+			return false
+		}
+
 		this.room.chan_PlayerOp <- &PlayerOp{playerId: this.id, cmdParam: 0, opType: PlayerLayBombOp, opTime: uint64(revCmd.LayTime), x: int32(revCmd.X), y: int32(revCmd.Y)}
 
 		fmt.Println("Lay Bomb++", this.id)
@@ -273,8 +298,12 @@ func (this *PlayerTask) offline() {
 }
 
 func (this *PlayerTask) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message) {
-	//data = make([]byte, common.CmdHeaderSize + msg)
-	//this.
+	data, ok := common.EncodeToBytes(uint16(cmd), msg)
+	if !ok {
+		glog.Info("[玩家] 发送消息失败 cmd:", cmd)
+		return
+	}
+	this.AsyncSend(data, 0)
 }
 
 func (this *PlayerTask) AsyncSend(buffer []byte, flag byte) bool {

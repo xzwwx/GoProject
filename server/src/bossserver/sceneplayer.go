@@ -30,7 +30,7 @@ type ScenePlayer struct {
 
 	// neng fou fen li chu lai
 	PlayerMove
-	isMove    bool
+	isMove    int
 	pos       Vector2
 	nextpos   Vector2
 	speed     uint32
@@ -77,7 +77,7 @@ func (this *ScenePlayer) Update(perTime float64, scene *Scene) {
 	//this.rangebombs = this.rangebombs[:0]
 	//this.rangebombs = append(this.rangebombs,this.bombs)
 	for _, ball := range this.rangeBombs {
-		if ball.isdelete {
+		if ball.isdelete == 1 {
 			continue
 		}
 		scene.rangeBalls = append(scene.rangeBalls, ball)
@@ -94,12 +94,14 @@ func (this *ScenePlayer) Update(perTime float64, scene *Scene) {
 // Send update msg to all
 func (this *ScenePlayer) sendSceneMsg(scene *Scene) {
 	var (
-		Moves = scene.pool.moveFree[:0]
+		Moves       = scene.pool.moveFree[:0]
+		ScenePlayer = scene.pool.msgPlayer[:0]
+		MsgBomb     = scene.pool.msgBomb[:0]
 		//Bombs =
 	)
 	// players move msg
 	for _, playermove := range this.otherPlayers {
-		if playermove.isMove {
+		if playermove.isMove == 1 {
 			move := &usercmd.MsgPlayerMove{
 				Id: playermove.id,
 				X:  int32(playermove.pos.x),
@@ -109,21 +111,57 @@ func (this *ScenePlayer) sendSceneMsg(scene *Scene) {
 			}
 			Moves = append(Moves, move)
 		}
+		sp := &usercmd.ScenePlayer{
+			Id:      playermove.id,
+			BombNum: playermove.bombNum,
+			Power:   playermove.power,
+			Speed:   playermove.speed,
+			State:   playermove.lifeState,
+			X:       float32(playermove.pos.x),
+			Y:       float32(playermove.pos.y),
+			IsMove:  true,
+		}
+		ScenePlayer = append(ScenePlayer, sp)
+	}
+
+	for _, bomb := range this.rangeBombs {
+		mb := &usercmd.MsgBomb{
+			X:        bomb.pos.X,
+			Y:        bomb.pos.Y,
+			IsDelete: bomb.isdelete,
+			Power:    bomb.power,
+		}
+		MsgBomb = append(MsgBomb, mb)
 	}
 
 	if len(Moves) != 0 {
 		msg := &scene.pool.msgScene
 		msg.Moves = Moves
 		msg.Frame = scene.frame
+		msg.Bombs = MsgBomb
+		msg.Players = ScenePlayer
+		msg.Id = this.id
+		msg.X = float32(this.pos.x)
+		msg.Y = float32(this.pos.y)
 
 		this.sendSceneMsgToNet(msg, scene)
 	}
 
 }
 
+// 同步场景信息
 func (this *ScenePlayer) sendSceneMsgToNet(msg *usercmd.MsgScene, scene *Scene) {
 	if this.self != nil {
-		newPos := msgSceneToBytes(uint16(usercmd.MsgTypeCmd_NewScene), msg, scene.msgBytes)
+		// 1.通过msgEncode编码发送场景信息
+		newPos := msgSceneToBytes(uint16(usercmd.MsgTypeCmd_SceneSync), msg, scene.msgBytes)
+
+		// 2.通过 Grpc 自带方法编码 发送场景信息
+		data, ok := common.EncodeToBytes(uint16(usercmd.MsgTypeCmd_SceneSync), msg)
+		if !ok {
+			glog.Info("[玩家]更新场景失败 cmd:", uint16(usercmd.MsgTypeCmd_SceneSync))
+			return
+		}
+		this.self.AsyncSend(data, 0)
 
 		//TCP
 		this.self.AsyncSend(scene.msgBytes[:newPos], 0)
@@ -166,7 +204,7 @@ func (this *ScenePlayer) LayBomb(room *Room, x, y int32) {
 				},
 				player:   this,
 				layTime:  timenow,
-				isdelete: false,
+				isdelete: 0,
 			}
 			this.bombLeft--
 
@@ -251,7 +289,7 @@ func (this *ScenePlayerMgr) Removes(splayers map[uint64]*ScenePlayer) {
 ////////////
 func (this *ScenePlayer) Move(scene *Scene, speed, direction float64) {
 
-	this.isMove = true
+	this.isMove = 1
 	this.CaculateNext(direction)          // 计算下一个位置
 	this.scene.BorderCheck(&this.nextpos) // 保证计算得到的下一位置不超出地图范围
 
