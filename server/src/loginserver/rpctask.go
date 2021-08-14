@@ -76,6 +76,7 @@ func (handler *RPCLogicTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Parse message type : /game?c=xxx
 	// To do
 
+
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

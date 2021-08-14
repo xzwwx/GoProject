@@ -2,7 +2,7 @@ syntax = "proto2";
 
 package usercmd;
 
-import "base.proto";
+// import "base.proto";
 
 option go_package = "./;usercmd";
 
@@ -17,7 +17,7 @@ message ReqIntoRoom {
 }
 
 //Request Into room
-message RetIntoFRoom {
+message RetIntoRoom {
   required uint32 Err   = 1;
   optional string Addr  = 2;
   optional string Key   = 3;

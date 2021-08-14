@@ -154,6 +154,8 @@ func (this *ScenePlayer) sendSceneMsgToNet(msg *usercmd.MsgScene, scene *Scene) 
 	if this.self != nil {
 		// 1.通过msgEncode编码发送场景信息
 		newPos := msgSceneToBytes(uint16(usercmd.MsgTypeCmd_SceneSync), msg, scene.msgBytes)
+		//TCP
+		this.self.AsyncSend(scene.msgBytes[:newPos], 0)
 
 		// 2.通过 Grpc 自带方法编码 发送场景信息
 		data, ok := common.EncodeToBytes(uint16(usercmd.MsgTypeCmd_SceneSync), msg)
@@ -163,8 +165,8 @@ func (this *ScenePlayer) sendSceneMsgToNet(msg *usercmd.MsgScene, scene *Scene) 
 		}
 		this.self.AsyncSend(data, 0)
 
-		//TCP
-		this.self.AsyncSend(scene.msgBytes[:newPos], 0)
+		// 3.通过Json编码的方式发送
+
 	}
 }
 

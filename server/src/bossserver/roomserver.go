@@ -9,7 +9,6 @@ import (
 	"glog"
 	"math/rand"
 	"net"
-	"net/http"
 	"time"
 )
 
@@ -45,7 +44,9 @@ func (this *RoomServer) Init() bool {
 	fmt.Println(pprofport)
 	if pprofport != "" {
 		go func() {
-			http.ListenAndServe(pprofport, nil)
+			fmt.Println("开始监听：", pprofport)
+			net.Listen("tcp", pprofport)
+			//http.ListenAndServe(pprofport, nil)
 		}()
 	}
 
@@ -58,6 +59,8 @@ func (this *RoomServer) Init() bool {
 
 	//Redis
 	//To do
+
+	fmt.Println("-------：", pprofport)
 
 	// Binding Local Port
 	err := this.roomser.Bind(env.Get("room", "listen"))
@@ -98,7 +101,7 @@ func ClientLogic(conn net.Conn) {
 }
 
 func (this *RoomServer) MainLoop() {
-	fmt.Println("loop")
+	// fmt.Println("loop")
 
 	conn, err := this.roomser.Accept()
 	if err != nil {

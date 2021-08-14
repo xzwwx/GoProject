@@ -11,6 +11,7 @@ option go_package = "./;usercmd";
 enum MsgTypeCmd {
   None1          = 0;
   Login1         = 1;    //--Login
+  LoginGame     = 2;
   AddPlayer     = 3;
   RemovePlayer  = 4;
   Scene         = 5;
@@ -55,6 +56,10 @@ message RetNewObjInfo{
 
 message HeartBeatInfo{
   string Verification = 1;
+}
+
+message UserLoginInfo {
+    string Token = 1;
 }
 
 

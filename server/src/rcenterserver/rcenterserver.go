@@ -2,19 +2,17 @@ package main
 
 import (
 	"base/env"
-	//"base/env"
 	"base/rpc"
 	"time"
 
 	"base/gonet"
-	//"bytes"
 	"flag"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"glog"
 	"strconv"
 
-	//"google.golang.org/genproto/googleapis/ads/googleads/v3/common"
+	"github.com/golang/protobuf/proto"
+
 	"log"
 	"net"
 	"usercmd"
@@ -22,8 +20,8 @@ import (
 
 type RCenterServer struct {
 	gonet.Service
-	rpcser 	*gonet.TcpServer
-	sockser	*gonet.TcpServer
+	rpcser  *gonet.TcpServer
+	sockser *gonet.TcpServer
 }
 
 var serverm *RCenterServer
@@ -32,7 +30,7 @@ func RCenterServer_GetMe() *RCenterServer {
 	if serverm == nil {
 		serverm = &RCenterServer{
 			rpcser:  &gonet.TcpServer{},
-			sockser:  &gonet.TcpServer{},
+			sockser: &gonet.TcpServer{},
 		}
 		serverm.Derived = serverm
 	}
@@ -43,7 +41,7 @@ func RCenterServer_GetMe() *RCenterServer {
 type RetIntoRoom struct {
 }
 
-func (q *RetIntoRoom) RetRoom(request *usercmd.ReqIntoRoom, reply *usercmd.RetIntoFRoom) error{
+func (q *RetIntoRoom) RetRoom(request *usercmd.ReqIntoRoom, reply *usercmd.RetIntoRoom) error {
 
 	fmt.Println("Into RPC...")
 
@@ -51,23 +49,20 @@ func (q *RetIntoRoom) RetRoom(request *usercmd.ReqIntoRoom, reply *usercmd.RetIn
 	username := request.UserName
 	fmt.Println(strconv.FormatInt(int64(uid), 10))
 
-
 	// Request into room
 	// To do
-
-
 
 	reply.Err = proto.Uint32(uint32(0))
 	reply.RoomId = proto.Uint32(uint32(107))
 	reply.Addr = proto.String("127.0.0.1:9494")
-	reply.Key = proto.String(strconv.FormatInt(int64(uid), 10)+*username)
+	reply.Key = proto.String(strconv.FormatInt(int64(uid), 10) + *username)
 
 	fmt.Println("Out RPC")
 
 	return nil
 }
 
-func Acc(listener net.Listener){
+func Acc(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -78,10 +73,10 @@ func Acc(listener net.Listener){
 		fmt.Println("Server success...")
 	}
 }
+
 /////////
 
-func (this * RCenterServer) Init() bool{
-
+func (this *RCenterServer) Init() bool {
 
 	rpc.RegisterName("RPCTask", new(RPCTask))
 	fmt.Println("RegisterName success...")
@@ -113,14 +108,14 @@ func (this *RCenterServer) Reload() {
 }
 
 var (
-	logfile = flag.String("logfile", "","Log file name")
-	config = flag.String("config", "config.json","config path")
+	logfile = flag.String("logfile", "", "Log file name")
+	config  = flag.String("config", "config.json", "config path")
 )
 
 func main() {
 	flag.Parse()
 	//
-	if !env.Load(*config){
+	if !env.Load(*config) {
 		return
 	}
 	//loglevel := env.Get("global", "loglevel")
@@ -133,10 +128,10 @@ func main() {
 	//	flag.Lookup("logtostderr").Value.Set(logtostderr)
 	//}
 	//
-	if *logfile != ""{
+	if *logfile != "" {
 		glog.SetLogFile(*logfile)
-	}else{
-		glog.SetLogFile(env.Get("rcenter","log"))
+	} else {
+		glog.SetLogFile(env.Get("rcenter", "log"))
 	}
 
 	defer glog.Flush()
@@ -145,4 +140,3 @@ func main() {
 
 	glog.Info("[Close] RCenterServer closed.")
 }
-

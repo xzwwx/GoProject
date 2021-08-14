@@ -77,7 +77,12 @@ type ReqKillMsg struct {
 //}
 
 type RoomTokenInfo struct {
-	UserId   uint32
+	UserId   uint64
 	UserName string
 	RoomId   uint32
+}
+
+type Vector2 struct {
+	x float64
+	y float64
 }

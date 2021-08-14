@@ -79,7 +79,7 @@ func NewPlayerTask(conn net.Conn) *PlayerTask {
 		tcptask:    gonet.NewTcpTask(conn),
 		activeTime: time.Now(),
 		onlineTime: time.Now().Unix(),
-		isUdp:      true,
+		isUdp:      false,
 	}
 	s.tcptask.Derived = s
 	return s
@@ -87,6 +87,8 @@ func NewPlayerTask(conn net.Conn) *PlayerTask {
 
 func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 	this.activeTime = time.Now()
+	fmt.Println("收到消息：", data)
+
 	if len(data) < 2 {
 		return true
 	}
