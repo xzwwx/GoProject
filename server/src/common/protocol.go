@@ -3,10 +3,12 @@ package common
 import (
 	"bytes"
 	"compress/zlib"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"glog"
 	"io"
+	"usercmd"
 )
 
 const (
@@ -184,4 +186,17 @@ func EncodeToBytes(cmd uint16, msg Message) ([]byte, bool) {
 	data[0] = byte(cmd)
 	data[1] = byte(cmd >> 8)
 	return data, true
+}
+
+// 生成二进制数据,返回数据和是否压缩标识(json)
+func EncodeCmdByJson(cmd uint16, msg Message) ([]byte, byte, error) {
+
+	txt, _ := json.Marshal(msg)
+	info := usercmd.CmdHeader{
+		Cmd:  usercmd.MsgTypeCmd(cmd),
+		Data: string(txt),
+	}
+	res, _ := json.Marshal(&info)
+
+	return res, 0, nil
 }

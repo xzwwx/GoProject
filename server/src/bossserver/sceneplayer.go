@@ -167,6 +167,8 @@ func (this *ScenePlayer) sendSceneMsgToNet(msg *usercmd.MsgScene, scene *Scene) 
 
 		// 3.通过Json编码的方式发送
 
+		//data , _ = json.Marshal()
+
 	}
 }
 
