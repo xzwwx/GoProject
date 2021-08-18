@@ -9,15 +9,13 @@ import (
 type FRoom struct {
 	Room
 
-	RUserNum	int32
-	MaxNum		int32
-	RoomId		uint32
-	StartTime 	uint32
-	Members		map[uint64]bool
-	FUserNum	uint32
+	RUserNum  int32
+	MaxNum    int32
+	RoomId    uint32
+	StartTime uint32
+	Members   map[uint64]bool
+	FUserNum  uint32
 }
-
-
 
 // Add member
 func (this *FRoom) Add(uid uint64) bool {
@@ -40,13 +38,11 @@ func (this *FRoom) MemNum() uint32 {
 	return this.FUserNum
 }
 
-
-
 type FreeRoomMgr struct {
-	mutex 	sync.RWMutex
-	rooms 	map[uint32]*FRoom
-	waitmutex 	sync.RWMutex
-	waitrooms 	map[uint32]*FRoom
+	mutex     sync.RWMutex
+	rooms     map[uint32]*FRoom
+	waitmutex sync.RWMutex
+	waitrooms map[uint32]*FRoom
 }
 
 var froomm *FreeRoomMgr
@@ -54,8 +50,8 @@ var froomm *FreeRoomMgr
 func FreeRoomMgr_GetMe() *FreeRoomMgr {
 	if froomm == nil {
 		froomm = &FreeRoomMgr{
-			rooms : make(map[uint32]*FRoom),
-			waitrooms : make(map[uint32]*FRoom),
+			rooms:     make(map[uint32]*FRoom),
+			waitrooms: make(map[uint32]*FRoom),
 		}
 	}
 	return froomm
@@ -63,18 +59,18 @@ func FreeRoomMgr_GetMe() *FreeRoomMgr {
 
 //Add Room
 func (this *FreeRoomMgr) AddRoom(rserverid uint16, raddress string, newsync bool, roomid uint32, endtime uint32) *FRoom {
-	fmt.Println("Into Addroom, rservid:",rserverid, ", ", raddress,", roomid:", roomid)
+	fmt.Println("Into Addroom, rservid:", rserverid, ", ", raddress, ", roomid:", roomid)
 	this.mutex.Lock()
 	room := &FRoom{
-		Room:Room{
+		Room: Room{
 			RServerId: rserverid,
-			RAddress: raddress,
-			EndTime: endtime,
-			UserNum: 1,
-			NewSync: newsync,
+			RAddress:  raddress,
+			EndTime:   endtime,
+			UserNum:   1,
+			NewSync:   newsync,
 		},
-		RUserNum: 1,
-		RoomId: roomid,
+		RUserNum:  1,
+		RoomId:    roomid,
 		StartTime: uint32(time.Now().Unix()),
 	}
 	this.rooms[roomid] = room
@@ -82,7 +78,7 @@ func (this *FreeRoomMgr) AddRoom(rserverid uint16, raddress string, newsync bool
 	return room
 }
 
-func (this *FreeRoomMgr) RemoveRoom(roomid uint32){
+func (this *FreeRoomMgr) RemoveRoom(roomid uint32) {
 	this.mutex.Lock()
 	delete(this.rooms, roomid)
 	this.mutex.Unlock()
@@ -93,7 +89,7 @@ func (this *FreeRoomMgr) UpdateRoom(roomid uint32, usernum, rusernum int32) {
 	room, ok := this.rooms[roomid]
 	if ok {
 		room.UserNum = usernum
-		if usernum > rusernum{
+		if usernum > rusernum {
 			rusernum = usernum
 		}
 		if rusernum > room.RUserNum {
@@ -108,10 +104,10 @@ func (this *FreeRoomMgr) IncRoomNum(userid uint64, roomid uint32) (usernum int32
 	this.mutex.Lock()
 	room, ok := this.rooms[roomid]
 	if ok {
-		fmt.Println("Room num ++ , roomid:",roomid)
+		fmt.Println("Room User num ++ , roomid:", roomid)
 		usernum = room.RUserNum
-		room.UserNum ++
-		room.RUserNum ++
+		room.UserNum++
+		room.RUserNum++
 	}
 	this.mutex.Unlock()
 	return
@@ -120,7 +116,7 @@ func (this *FreeRoomMgr) IncRoomNum(userid uint64, roomid uint32) (usernum int32
 func (this *FreeRoomMgr) GetRoom(userid uint64) *SortRoom {
 	froom := &SortRoom{}
 	nowTime := uint32(time.Now().Unix())
-	fmt.Println("Into freeroom ", froom.RoomId,", ", froom.UserNum)
+	fmt.Println("Into freeroom ", froom.RoomId, ", ", froom.UserNum)
 	//totalnum := ServerTaskMgr_GetMe().GetTotalNum()
 	this.mutex.Lock()
 	//roomnum := len(this.rooms)
@@ -131,7 +127,7 @@ func (this *FreeRoomMgr) GetRoom(userid uint64) *SortRoom {
 			fmt.Println("End time:", room.EndTime, ", Now: ", nowTime, ", ", rid)
 			//delete(this.rooms, rid)
 		}
-		if room.RUserNum >= MAX_ROOM_SNUM {		// Full
+		if room.RUserNum >= MAX_ROOM_SNUM { // Full
 			continue
 		}
 
@@ -153,4 +149,3 @@ func (this *FreeRoomMgr) GetRoom(userid uint64) *SortRoom {
 	this.IncRoomNum(userid, froom.RoomId)
 	return froom
 }
-

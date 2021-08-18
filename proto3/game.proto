@@ -179,9 +179,13 @@ message MsgScene {
 
 // Move request
 message MsgMove{
-  int32 direction = 1;    // direction
-  int32 speed = 2;  // 
+  int32 Way = 1;    // direction
 }
+// 请求放置炸弹（tmp）
+message MsgPutBomb {
+  bool None = 1;
+}
+
 
 // Lay Bomb request
 message MsgLayBomb {
@@ -216,11 +220,12 @@ message ScenePlayer {
   uint64 id       = 1;
   uint32 BombNum   = 2;
   uint32 power     = 3;
-  uint32 speed     = 4;
+  float speed     = 4;
   uint32 state     = 5;   // 玩家状态 0:死亡 1：血量
   float X         = 6;
   float Y         = 7;
   bool isMove     = 8;
+  uint32 score    = 9;
 
 }
 
@@ -279,10 +284,27 @@ enum UserState {
 
 }
 
+
 message RetPlayerState{
   uint64 UserId = 1;
   int32 UserState = 2;
 }
+
+// 结算信息
+message SettleMentInfo {
+  uint64 id                       = 1;
+  uint64 gameTime                 = 2;// 游戏时间
+  repeated ScenePlayer players    = 3;// 所有玩家信息
+}
+
+// 返回死亡
+message RetRoleDeath {
+  string killName = 1;  // 被谁杀了
+  uint64 killId   = 2;  // 被谁杀了id
+  uint32 liveTime = 3;  // 存活时间
+  uint32 score    = 4;  // 得分
+}
+
 
 /////////
 message RetBeBreak {

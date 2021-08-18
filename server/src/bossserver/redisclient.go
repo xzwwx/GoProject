@@ -1,26 +1,90 @@
 package main
 
-// import (
-// 	"github.com/garyburd/redigo/redis"
-// )
+import (
+	"base/env"
 
-const (
-	MAX_KEEPEND_TIME = 300 // max end room time
+	"glog"
+
+	"github.com/gomodule/redigo/redis"
 )
 
-// type RedisMgr struct {
-// 	RedisPool *redis.Pool
-// }
+type RedisManager struct {
+	conn redis.Conn
+}
 
-// var redismgr *RedisMgr
+var mRedisMgr *RedisManager
 
-// func RedisMgr_GetMe() *RedisMgr {
-// 	if redismgr == nil {
-// 		redismgr = &RedisMgr{}
-// 	}
-// 	return redismgr
-// }
+func RedisManager_GetMe() *RedisManager {
+	if mRedisMgr == nil {
+		c, err := redis.Dial("tcp", env.Get("redis", "server"))
+		if err != nil {
+			glog.Errorln("[redis] redis连接失败, ", err)
+		}
+		_, err = c.Do("AUTH", env.Get("redis", "password"))
+		if err != nil {
+			glog.Errorln("[redis] 验证失败， ", err)
+		}
+		mRedisMgr = &RedisManager{
+			conn: c,
+		}
+	}
+	return mRedisMgr
+}
 
-// func (this *RedisMgr) Init() bool {
-// 	return true
-// }
+func (this *RedisManager) Set(key, value string) {
+	_, err := this.conn.Do("SET", key, value)
+	if err != nil {
+		glog.Errorln("[Redis] Set Error: ", err)
+		return
+	}
+}
+
+func (this *RedisManager) Get(key string) string {
+	val, err := redis.String(this.conn.Do("GET", key))
+	if err != nil {
+		glog.Errorln("[Redis] Get Error: ", err)
+		return ""
+	}
+	return val
+}
+
+func (this *RedisManager) HMSet(key string, fields interface{}) {
+	_, err := this.conn.Do("HMSET", redis.Args{key}.AddFlat(fields)...)
+	if err != nil {
+		glog.Errorln("[Redis] HMSet Error: ", err)
+		return
+	}
+}
+
+func (this *RedisManager) HGet(key, field string) string {
+	val, err := redis.String(this.conn.Do("HGET", key, field))
+	if err != nil {
+		glog.Errorln("[Redis] HGet Error: ", err)
+		return ""
+	}
+	return val
+}
+
+func (this *RedisManager) HGetAll(key string) map[string]string {
+	m, err := redis.StringMap(this.conn.Do("HGETALL", key))
+	if err != nil {
+		glog.Errorln("[Redis] HGetAll Error: ", err)
+		return nil
+	}
+	return m
+}
+
+func (this *RedisManager) Exist(key string) bool {
+	exist, err := redis.Bool(this.conn.Do("EXISTS", key))
+	if err != nil {
+		glog.Errorln("[Redis] EXISTS Error: ", err)
+	}
+	return exist
+}
+
+func (this *RedisManager) Stop() {
+	err := this.conn.Close()
+	if err != nil {
+		glog.Errorln("[Redis] Close Error: ", err)
+	}
+}

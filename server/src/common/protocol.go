@@ -200,3 +200,15 @@ func EncodeCmdByJson(cmd uint16, msg Message) ([]byte, byte, error) {
 
 	return res, 0, nil
 }
+
+func EncodeToBytesJson(cmd uint16, msg Message) ([]byte, bool) {
+
+	txt, _ := json.Marshal(msg)
+	info := usercmd.CmdHeader{
+		Cmd:  usercmd.MsgTypeCmd(cmd),
+		Data: string(txt),
+	}
+	res, _ := json.Marshal(&info)
+
+	return res, true
+}

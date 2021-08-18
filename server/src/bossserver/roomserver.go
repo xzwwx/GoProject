@@ -84,22 +84,6 @@ func (this *RoomServer) UdpLoop() {
 	//}
 }
 
-func ClientLogic(conn net.Conn) {
-
-	// 从客户端接受数据
-	buf := make([]byte, 1024)
-
-	n, _ := conn.Read(buf)
-	//s, _ := bufio.NewReader(conn).Read(buf)
-	println("由客户端发来的消息：", n, ", ", string(buf[:n]))
-
-	// 发送消息给客户端
-	//conn.Write([]byte("东东你好\n"))
-
-	// 关闭连接
-	//conn.Close()
-}
-
 func (this *RoomServer) MainLoop() {
 	// fmt.Println("loop")
 

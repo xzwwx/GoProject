@@ -4,7 +4,12 @@ import (
 	"glog"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
+)
+
+const (
+	MAX_KEEPEND_TIME = 300
 )
 
 type RoomMgr struct {
@@ -13,6 +18,7 @@ type RoomMgr struct {
 	endmutex sync.RWMutex
 	endrooms map[uint32]int64
 	endChan  chan uint32
+	curNum   uint32 // 当前最后一个不满人的房间id
 }
 
 var roommgr *RoomMgr
@@ -38,12 +44,12 @@ func (this *RoomMgr) Init() {
 			mintick.Stop()
 		}()
 
-		for {
-			select {
-			case <-mintick.C:
-				this.ChkEndRoomId()
-			}
-		}
+		// for {
+		// 	select {
+		// 	case <-mintick.C:
+		// 		this.ChkEndRoomId()
+		// 	}
+		// }
 	}()
 }
 
@@ -88,9 +94,12 @@ func (this *RoomMgr) AddRoom(room *Room) (*Room, bool) {
 	defer this.runmutex.Unlock()
 	oldroom, ok := this.runrooms[room.id]
 	if ok {
+		glog.Errorln("有旧房间")
 		return oldroom, true
 	}
+	glog.Errorln("[新房间]", room.id)
 	this.runrooms[room.id] = room
+
 	return room, true
 }
 
@@ -114,9 +123,16 @@ func (this *RoomMgr) getNum() (roomnum int32) {
 
 // Create room
 func (this *RoomMgr) NewRoom(rtype, rid uint32, player *PlayerTask) *Room {
+	glog.Errorln("创建房间：", rid, "")
+
 	room, ok := this.AddRoom(NewRoom(rtype, rid, player))
+
 	if ok {
+
+		//开启房间
+		glog.Errorln("[游戏]房间开始：", rid, " 等待玩家加入")
 		if !room.Start() {
+			glog.Errorln("游戏房间开始失败")
 			this.RemoveRoom(room)
 			return nil
 		}
@@ -138,8 +154,12 @@ func (this *RoomMgr) GetRooms() (rooms []*Room) {
 //Get room by id
 func (this *RoomMgr) getRoomById(rid uint32) *Room {
 	this.runmutex.RLock()
+	defer this.runmutex.RUnlock()
+	glog.Errorln("[房间]查房间：", rid)
+
 	room, ok := this.runrooms[rid]
 	if !ok {
+		glog.Errorln("[房间]无此房间：", rid)
 		return nil
 	}
 	return room
@@ -149,23 +169,30 @@ func (this *RoomMgr) AddPlayer(player *PlayerTask) bool {
 
 	room := this.getRoomById(player.udata.RoomId)
 
-	if this.IsEndRoom(player.udata.RoomId) {
-		glog.Error("[房间]已结束", player.udata.Id, ", ", player.udata.Account, ", ", player.udata.RoomId)
-		return false
-	}
+	// if this.IsEndRoom(player.udata.RoomId) {
+	// 	glog.Error("[房间]已结束", player.udata.Id, ", ", player.udata.Account, ", ", player.udata.RoomId)
+	// 	return false
+	// }
 
-	if room == nil {
-		room = this.NewRoom(0, player.udata.RoomId, player)
-		if room == nil {
-			return false
-		}
-	}
+	// if room == nil {
+	// 	room = this.NewRoom(0, player.udata.RoomId, player)
+	// 	if room == nil {
+	// 		return false
+	// 	}
+	// }
+	glog.Errorln("roomid:", room.id)
+	glog.Errorln("playerid:", player.udata.Id)
+	glog.Errorln("playername:", player.udata.Account)
 	glog.Info("[房间] 自由模式 ", room.id, ", ", player.udata.Id, ", ", player.udata.Account)
 
 	room.IncPlayerNum()
-
+	glog.Errorln("[房间]当前玩家数：", room.curPlayerNum)
 	player.room = room
 	player.room.chan_AddPlayer <- player
 
 	return true
+}
+
+func (this *RoomMgr) UpdateNextRoomId() {
+	atomic.StoreUint32(&this.curNum, this.curNum+1)
 }

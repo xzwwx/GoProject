@@ -86,3 +86,38 @@ type Vector2 struct {
 	x float64
 	y float64
 }
+
+// 格子
+type GridPos struct {
+	X uint32
+	Y uint32
+}
+
+// 障碍物
+type Obstacle struct {
+	Id  uint32
+	Pos GridPos
+}
+
+// 宝箱
+type Box struct {
+	Goods uint32 // 物体类型
+	Id    uint32
+	Pos   GridPos
+}
+
+// 坐标
+type Position struct {
+	X float64
+	Y float64
+}
+
+type MoveWay byte
+
+const (
+	MoveWay_None = MoveWay(iota)
+	MoveWay_Up
+	MoveWay_Down
+	MoveWay_Left
+	MoveWay_Right
+)

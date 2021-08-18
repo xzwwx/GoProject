@@ -3,11 +3,10 @@ package main
 import (
 	"base/gonet"
 	"common"
-	"fmt"
+	"encoding/json"
 	"glog"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 	"usercmd"
 )
@@ -20,7 +19,7 @@ const (
 
 type PlayerTask struct {
 	tcptask *gonet.TcpTask
-	//udptask *snet.Session
+	//udptask	 *snet.Session
 	isUdp bool
 
 	key   string
@@ -36,6 +35,7 @@ type PlayerTask struct {
 	lifenum   uint32
 	state     uint32
 	hasMove   int32
+	score     uint32 // 得分
 
 	lastLayBomb     int32 // last lay bomb times
 	lastLayBombTime int64 // last .. time
@@ -72,6 +72,7 @@ type PlayerOp struct {
 	opTime     uint64
 	x          int32
 	y          int32
+	msg        common.Message // 其他信息
 }
 
 func NewPlayerTask(conn net.Conn) *PlayerTask {
@@ -87,47 +88,98 @@ func NewPlayerTask(conn net.Conn) *PlayerTask {
 
 func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 	this.activeTime = time.Now()
-	fmt.Println("收到消息：", data)
 
 	if len(data) < 2 {
 		return true
 	}
-	cmd := usercmd.MsgTypeCmd(common.GetCmd(data))
+
+	info := usercmd.CmdHeader{}
+	err := json.Unmarshal(data, &info)
+	if err != nil {
+		glog.Errorln("[json解析失败] ", err)
+	}
+	cmd := info.Cmd
+
+	//cmd := usercmd.MsgTypeCmd(common.GetCmd(data))
 	if !this.IsVerified() {
+		glog.Infoln("[debug] cmd : ", cmd)
+
 		// Verify login
 		if cmd != usercmd.MsgTypeCmd_Login1 {
 			glog.Error("[Login] Not login cmd. ", this.RemoteAddr(), ", ", cmd)
 			return false
 		}
 
-		revCmd, ok := common.DecodeGprotoCmd(data, flag, &usercmd.MsgLogin{}).(*usercmd.MsgLogin)
-		if !ok {
-			// return error msg
-			// SendCmd()
+		// 解析Json消息
+		revCmd := &usercmd.UserLoginInfo{}
+		err := json.Unmarshal([]byte(info.Data), revCmd)
+		if err != nil {
+			glog.Errorln(err)
+			// this.retErrorMsg(common.ErrorCodeRoom)
+			return false
 		}
-		glog.Info("[Login] Received login request", this.RemoteAddr(), ", ", revCmd.Key, ", ")
+		glog.Infoln("[RoomServer Login] recv a login request ", this.RemoteAddr())
+		glog.Infoln(revCmd.Token)
+
+		// ------原proto格式命令-----
+		// revCmd, ok := common.DecodeGprotoCmd(data, flag, &usercmd.MsgLogin{}).(*usercmd.MsgLogin)
+		// if !ok {
+		// 	// return error msg
+		// 	// SendCmd()
+		// }
+		//glog.Info("[Login] Received login request", this.RemoteAddr(), ", ", revCmd.Key, ", ")
+
+		// 解析token，获取用户信息
+		rinfo := &common.RoomTokenInfo{}
+		glog.Errorln("Token:", revCmd.Token)
+
+		// rinfo : userid, username, roomid
+		rinfo, err = common.ParseRoomToken(revCmd.Token)
+		glog.Errorln(rinfo.RoomId, ", ", rinfo.UserId, ", ", rinfo.UserName)
+		if err != nil {
+			glog.Errorln("[MsgTypeCmd_Login] parse room token error:", err)
+			return false
+		}
+		// 同一个用户重复连接
+		//遍历server里的所有房间
+		for _, rm := range RoomMgr_GetMe().runrooms {
+			for _, pl := range rm.rplayers {
+				if pl.name == rinfo.UserName {
+					this.OnClose()
+					return false
+				}
+			}
+		}
 
 		//Check Key
 		var newLogin bool = true
-		if s := ScenePlayerMgr_GetMe().GetPlayer(revCmd.Key); s != nil {
+		if s := ScenePlayerMgr_GetMe().GetPlayer(rinfo.UserName); s != nil {
 			this.udata = s.udata
 			newLogin = false
 		}
 		if this.udata == nil {
 			// udata := &common.UserData{}
-			token := common.RedisMgr.Get(revCmd.Name + "_token")
+			token := common.RedisMgr.Get(rinfo.UserName + "_roomtoken")
 			if token == "" {
-				glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", revCmd.Key)
+				glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", rinfo.UserName, "====")
 				return false
 			}
 			udata, err := common.ParseRoomToken(token)
-			if err == nil {
-				glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", revCmd.Key)
+			glog.Errorln("Token RoomId:", udata.RoomId, ", UserId:", udata.UserId, ", Username:", udata.UserName)
+			if err != nil {
+				glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", rinfo.UserName)
 				return false
 			}
-			this.udata.Id = uint64(udata.UserId)
-			this.udata.Account = udata.UserName
-			this.udata.RoomId = udata.RoomId
+			ud := &common.UserData{
+				Id:      udata.UserId,
+				Account: udata.UserName,
+				RoomId:  udata.RoomId,
+			}
+			this.udata = ud
+			glog.Errorln("=======roomid:", this.udata.RoomId, ", id:", this.udata.Id)
+			//this.udata.Id = udata.UserId
+			//this.udata.Account = udata.UserName
+			//this.udata.RoomId = udata.RoomId
 
 			// if !RedisMgr_GetMe().LoadFromRedis(revCmd.Key, udata){
 			// 	glog.Error("[登录] 验证失败", this.RemoteAddr(), ", ", revCmd.Key)
@@ -135,13 +187,13 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 			// }
 		}
 
-		this.key = revCmd.Key
+		this.key = rinfo.UserName
 		this.id = this.udata.Id
 		this.name = this.udata.Account
 
 		otask := PlayerTaskMgr_GetMe().GetTask(this.id)
 		if otask != nil {
-			glog.Info("[Login] ReLogin.", otask.id, ", ", otask.key)
+			glog.Infoln("[Login] ReLogin.", otask.id, ", ", otask.key)
 		}
 		this.Verify()
 
@@ -149,10 +201,15 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 
 		if newLogin {
 			room := RoomMgr_GetMe().getRoomById(this.udata.RoomId)
-			if room != nil {
-
+			if room == nil {
+				room = RoomMgr_GetMe().NewRoom(0, rinfo.RoomId, this)
 			}
 		}
+
+		//room := RoomMgr_GetMe().getRoomById(this.udata.RoomId)
+		// if room != nil {
+		// 	// 重连
+		// }
 
 		glog.Info("[Login] Verified account success. ", this.RemoteAddr(), ", ", this.udata.Id, ", ", this.udata.Account, ", ", this.key)
 
@@ -164,7 +221,7 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 			return false
 		}
 
-		this.online()
+		//this.online()
 
 		glog.Info("[Login] Success,", this.RemoteAddr(), ", ", this.udata.RoomAddr, ", ", this.udata.RoomId, ", ",
 			this.udata.Id, ", ", this.udata.Account, ", ", this.key)
@@ -185,43 +242,72 @@ func (this *PlayerTask) ParseMsg(data []byte, flag byte) bool {
 	case usercmd.MsgTypeCmd_Move:
 		// Player move
 		revCmd := &usercmd.MsgMove{}
-		if common.DecodeGoCmd(data, flag, revCmd) != nil {
+		json.Unmarshal([]byte(info.Data), revCmd)
+		if this.room == nil || this.room.IsClosed() {
+			glog.Infoln("[收到请求移动的指令] 房间不存在")
 			return false
 		}
-
-		if revCmd.Speed == 0 {
-			revCmd.Speed = this.speed
+		if !this.room.isStart { // 游戏未开始
+			glog.Infoln("[收到请求移动的指令] 游戏未开始")
+			return false
 		}
+		glog.Infof("[%v收到请求移动的指令] revCmd.Way=%v", this.name, revCmd.Way)
+		this.room.chan_PlayerOp <- &PlayerOp{playerId: this.id, opType: PlayerMoveOp, msg: revCmd}
 
-		atomic.StoreInt32(&this.direction, revCmd.Direction)
-		atomic.StoreInt32(&this.speed, revCmd.Speed)
-		atomic.StoreInt32(&this.hasMove, 1)
+		// if common.DecodeGoCmd(data, flag, revCmd) != nil {
+		// 	return false
+		// }
+
+		// if revCmd.Speed == 0 {
+		// 	revCmd.Speed = this.speed
+		// }
+
+		// atomic.StoreInt32(&this.direction, revCmd.Direction)
+		// atomic.StoreInt32(&this.speed, revCmd.Speed)
+		// atomic.StoreInt32(&this.hasMove, 1)
 
 		// this.room.chan_PlayerOp <- &PlayerOp{playerId: this.id, cmdParam: 0, opType: PlayerMoveOp}
-		fmt.Println("Move++", this.id)
+		//fmt.Println("Move++", this.id)
 
 	case usercmd.MsgTypeCmd_LayBomb:
 		// Lay bombs
-		timenow := time.Now().Unix()
-		if this.lastLayBombTime <= timenow {
-			if this.lastLayBomb >= OpsNumPerSecond {
-				glog.Error("[Lay Bomb] Too fast. ", this.udata.RoomId, ", ", this.udata.Id, ", ", this.udata.Account, ", ", this.lastLayBomb)
-			}
-			this.lastLayBombTime = timenow + 1
-			this.lastLayBomb = 0
-		}
-		this.lastLayBomb++
-		if this.lastLayBomb > OpsPerSecond {
-			return true
-		}
-		revCmd := &usercmd.MsgLayBomb{}
-		if common.DecodeGoCmd(data, flag, revCmd) != nil {
+
+		revCmd := &usercmd.MsgPutBomb{}
+		json.Unmarshal([]byte(info.Data), revCmd)
+		// if common.DecodeGoCmd(data, flag, revCmd) != nil {
+		// 	return false
+		// }
+		if this.room == nil || this.room.IsClosed() {
+			glog.Infoln("[收到请求放炸弹的指令] 房间不存在")
 			return false
 		}
+		if !this.room.isStart { // 游戏未开始
+			glog.Infoln("[收到请求放炸弹的指令] 游戏未开始")
+			return false
+		}
+		glog.Infof("[%v收到请求放炸弹的指令]", this.name)
+		this.room.chan_PlayerOp <- &PlayerOp{playerId: this.id, opType: PlayerLayBombOp, msg: revCmd}
 
-		this.room.chan_PlayerOp <- &PlayerOp{playerId: this.id, cmdParam: 0, opType: PlayerLayBombOp, opTime: uint64(revCmd.LayTime), x: int32(revCmd.X), y: int32(revCmd.Y)}
+		// timenow := time.Now().Unix()
+		// if this.lastLayBombTime <= timenow {
+		// 	if this.lastLayBomb >= OpsNumPerSecond {
+		// 		glog.Error("[Lay Bomb] Too fast. ", this.udata.RoomId, ", ", this.udata.Id, ", ", this.udata.Account, ", ", this.lastLayBomb)
+		// 	}
+		// 	this.lastLayBombTime = timenow + 1
+		// 	this.lastLayBomb = 0
+		// }
+		// this.lastLayBomb++
+		// if this.lastLayBomb > OpsPerSecond {
+		// 	return true
+		// }
+		// revCmd := &usercmd.MsgLayBomb{}
+		// if common.DecodeGoCmd(data, flag, revCmd) != nil {
+		// 	return false
+		// }
 
-		fmt.Println("Lay Bomb++", this.id)
+		// this.room.chan_PlayerOp <- &PlayerOp{playerId: this.id, cmdParam: 0, opType: PlayerLayBombOp, opTime: uint64(revCmd.LayTime), x: int32(revCmd.X), y: int32(revCmd.Y)}
+
+		// fmt.Println("Lay Bomb++", this.id)
 
 	case usercmd.MsgTypeCmd_Death:
 		//
@@ -300,7 +386,9 @@ func (this *PlayerTask) offline() {
 }
 
 func (this *PlayerTask) SendCmd(cmd usercmd.MsgTypeCmd, msg common.Message) {
-	data, ok := common.EncodeToBytes(uint16(cmd), msg)
+	// data, ok := common.EncodeToBytes(uint16(cmd), msg)
+	data, ok := common.EncodeToBytesJson(uint16(cmd), msg)
+
 	if !ok {
 		glog.Info("[玩家] 发送消息失败 cmd:", cmd)
 		return
@@ -343,6 +431,7 @@ func (this *PlayerTaskMgr) Add(task *PlayerTask) bool {
 	}
 	this.mutex.Lock()
 	this.tasks[task.id] = task
+	glog.Errorln("添加playerTask：", task.id)
 	this.mutex.Unlock()
 	return true
 }
